@@ -10,6 +10,7 @@ import Prelude hiding (catch)
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
+import Graphics.Rendering.FTGL as FTGL
 import Codec.Image.PNG
 
 import SDLUtils
@@ -43,53 +44,60 @@ getSColor2 :: (Fractional a) => SColor -> Color3 a
 getSColor2 SBlue   = Color3 0   0     0.545
 getSColor2 SOrange = Color3 0.8 0.333 0
 
-drawBox :: Either SColor TextureObject -> IO () -> ((Int, Int), (Int, Int)) -> Int -> IO ()
-drawBox mat prep ((x', y'), (w', h')) d' = preservingMatrix $ do
+drawBox :: Either SColor TextureObject -> IO () -> ((Int, Int), (Int, Int)) -> Int -> Maybe (String, Font) -> IO ()
+drawBox mat prep ((x', y'), (w', h')) d' stf = preservingMatrix $ do
   let ((x, y), (w, h)) = ((fromIntegral x', fromIntegral y'), (fromIntegral w', fromIntegral h'))
-      d :: GLint
+      d :: GLfloat
       d = fromIntegral d'
   loadIdentity
   prep
+  translate $ Vector3 x y d
   case mat of
     Right tex -> do
       textureBinding Texture2D $= Just tex
       renderPrimitive Quads $ do
         texCoord (TexCoord2 0 (1 :: GLfloat))
-        vertex $ Vertex3 x       y       d
+        vertex $ Vertex3 0 0 (0 :: GLfloat)
         texCoord (TexCoord2 1 (1 :: GLfloat))
-        vertex $ Vertex3 (x + w) y       d
+        vertex $ Vertex3 w 0 0
         texCoord (TexCoord2 1 (0 :: GLfloat))
-        vertex $ Vertex3 (x + w) (y + h) d
+        vertex $ Vertex3 w h (0 :: GLfloat)
         texCoord (TexCoord2 0 (0 :: GLfloat))
-        vertex $ Vertex3 x       (y + h) d
+        vertex $ Vertex3 0 h 0
     Left scol -> do
       textureBinding Texture2D $= Nothing
       renderPrimitive Quads $ do
         color $ (getSColor1 scol :: Color3 GLfloat)
-        vertex $ Vertex3 x       y       d
+        vertex $ Vertex3 0 0 (0 :: GLfloat)
         color $ (getSColor2 scol :: Color3 GLfloat)
-        vertex $ Vertex3 (x + w) y       d
+        vertex $ Vertex3 w 0 0
         color $ (getSColor2 scol :: Color3 GLfloat)
-        vertex $ Vertex3 (x + w) (y + h) d
+        vertex $ Vertex3 w h 0
         color $ (getSColor1 scol :: Color3 GLfloat)
-        vertex $ Vertex3 x       (y + h) d
+        vertex $ Vertex3 0 h 0
+  case stf of
+    Nothing       -> return ()
+    Just (str, f) -> do
+      color $ Color3 0 0 (0 :: GLint)
+      translate $ Vector3 6 6 (1 :: GLfloat)
+      renderFont f str FTGL.Front
 
-drawScene :: TextureObject -> Int -> Int -> IO ()
-drawScene tex w h = do
+drawScene :: Font -> TextureObject -> Int -> Int -> IO ()
+drawScene f tex w h = do
   clear [ColorBuffer, DepthBuffer]
 
-  drawBox (Right tex)    (color $ Color3 0.4 0.4 (0.4 :: GLfloat)) ((0, 0), (w, h)) (-1)
-  drawBox (Left SOrange) (return ())                               ((100, 200), (100, 30)) 0
-  drawBox (Left SBlue)   (return ())                               ((500, 200), (100, 30)) 0
+  drawBox (Right tex)    (color $ Color3 0.4 0.4 (0.4 :: GLfloat)) ((0, 0), (w, h))        (-1) Nothing
+  drawBox (Left SOrange) (return ())                               ((100, 200), (200, 30)) 0    (Just ("orange button", f))
+  drawBox (Left SBlue)   (return ())                               ((500, 200), (200, 30)) 0    (Just ("blue button", f))
   glSwapBuffers
 
-loop :: TextureObject -> Int -> Int -> IO ()
-loop tex w h = do
-  drawScene tex w h
+loop :: Font -> TextureObject -> Int -> Int -> IO ()
+loop f tex w h = do
+  drawScene f tex w h
   evts <- pollAllSDLEvents
   if isJust $ specificKeyPressed [SDLK_ESCAPE] evts
     then return ()
-    else loop tex w h
+    else loop f tex w h
 
 type Camera = ((Int, Int), (Int, Int))
 
@@ -103,6 +111,16 @@ setCamera ((minx', miny'), (diffx', diffy')) = do
 
 main :: IO ()
 main = catch run (\e -> hPutStrLn stderr $ "Exception: " ++ show (e :: IOException))
+
+loadDataFont :: FilePath -> IO Font
+loadDataFont fp = do
+  -- fn <- getDataFileName fp
+  -- exists <- doesFileExist fn
+  -- when (not exists) $ do
+    -- throwIO $ mkIOError doesNotExistErrorType "loading data font during initialization" Nothing (Just fn)
+  f <- createTextureFont fp
+  _ <- setFontFaceSize f 24 48
+  return f
 
 run :: IO ()
 run = do
@@ -119,5 +137,6 @@ run = do
   matrixMode $= Modelview 0
   texture Texture2D $= Enabled
   tex <- loadTexture "bg.png"
-  loop tex width height
+  f <- loadDataFont "DejaVuSans.ttf"
+  loop f tex width height
 
