@@ -85,13 +85,14 @@ drawScene tex w h = do
 
   glSwapBuffers
 
-type Camera = ((GLdouble, GLdouble), (GLdouble, GLdouble))
+type Camera = ((Int, Int), (Int, Int))
 
 setCamera :: Camera -> IO ()
-setCamera ((minx, miny), (diffx, diffy)) = do
+setCamera ((minx', miny'), (diffx', diffy')) = do
+  let ((minx, miny), (diffx, diffy)) = ((fromIntegral minx', fromIntegral miny'), (fromIntegral diffx', fromIntegral diffy'))
   matrixMode $= Projection
   loadIdentity
-  ortho minx (minx + diffx) miny (miny + diffy) (-10) 10
+  ortho minx (minx + diffx) miny (miny + diffy) (-10) (10 :: GLdouble)
   matrixMode $= Modelview 0
 
 main :: IO ()
