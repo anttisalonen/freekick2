@@ -3,6 +3,9 @@ module Main where
 
 import Control.Monad
 import Data.Array.Storable
+import System.IO.Error
+import Control.Exception
+import Prelude hiding (catch)
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -13,27 +16,23 @@ width, height :: (Num a) => a
 width = 800
 height = 600
 
-initGL :: IO TextureObject
-initGL = do
-  tex <- loadGLTextures
-  texture Texture2D $= Enabled
-  return tex
-
-loadGLTextures :: IO TextureObject
-loadGLTextures = do
-  eimg <- loadPNGFile "bg.png"
+loadTexture :: FilePath -> IO TextureObject
+loadTexture fp = do
+  eimg <- loadPNGFile fp
   case eimg of
-    Left err  -> error err
+    Left err  -> throwIO $ mkIOError doesNotExistErrorType ("loading texture:" ++ err) Nothing (Just fp)
     Right img -> do
       let (imgw, imgh) = dimensions img
-      print $ dimensions img
       texName <- liftM head (genObjectNames 1)
       textureBinding Texture2D $= Just texName
       textureFilter  Texture2D $= ((Nearest, Nothing), Nearest)
+      let isAlpha = hasAlphaChannel img
+          intform = if isAlpha then RGBA' else RGB'
+          pformat = if isAlpha then RGBA  else RGB
       withStorableArray (imageData img) $ \imgdata -> 
-        texImage2D Nothing NoProxy 0 RGB' 
-        (TextureSize2D (fromIntegral imgw) (fromIntegral imgh)) 0 
-        (PixelData RGB UnsignedByte imgdata)
+        texImage2D Nothing NoProxy 0 intform
+          (TextureSize2D (fromIntegral imgw) (fromIntegral imgh)) 0 
+          (PixelData pformat UnsignedByte imgdata)
       return texName
 
 drawScene :: TextureObject -> IO ()
@@ -97,10 +96,9 @@ main = do
   viewport $= (Position 0 0, Size width height)
   matrixMode $= Projection
   loadIdentity
-  -- perspective 45 (width / height) 0.1 100
-  -- ortho ((-1) * width) (1 * width) ((-1) * height) (1 * height) (-10) 10
   setCamera ((0, 0), (width, height))
   matrixMode $= Modelview 0
-  tex <- initGL
+  texture Texture2D $= Enabled
+  tex <- loadTexture "bg.png"
   forever (drawScene tex)
 
