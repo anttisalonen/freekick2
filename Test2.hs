@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Monad
+import Data.Maybe
 import Data.Array.Storable
 import System.IO (hPutStrLn, stderr)
 import System.IO.Error hiding (catch)
@@ -9,8 +10,9 @@ import Prelude hiding (catch)
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
-
 import Codec.Image.PNG
+
+import SDLUtils
 
 loadTexture :: FilePath -> IO TextureObject
 loadTexture fp = do
@@ -79,8 +81,15 @@ drawScene tex w h = do
   drawBox (Right tex)    (color $ Color3 0.4 0.4 (0.4 :: GLfloat)) ((0, 0), (w, h)) (-1)
   drawBox (Left SOrange) (return ())                               ((100, 200), (100, 30)) 0
   drawBox (Left SBlue)   (return ())                               ((500, 200), (100, 30)) 0
-
   glSwapBuffers
+
+loop :: TextureObject -> Int -> Int -> IO ()
+loop tex w h = do
+  drawScene tex w h
+  evts <- pollAllSDLEvents
+  if isJust $ specificKeyPressed [SDLK_ESCAPE] evts
+    then return ()
+    else loop tex w h
 
 type Camera = ((Int, Int), (Int, Int))
 
@@ -110,5 +119,5 @@ run = do
   matrixMode $= Modelview 0
   texture Texture2D $= Enabled
   tex <- loadTexture "bg.png"
-  forever (drawScene tex width height)
+  loop tex width height
 
