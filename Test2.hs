@@ -44,8 +44,11 @@ getSColor2 :: (Fractional a) => SColor -> Color3 a
 getSColor2 SBlue   = Color3 0   0     0.545
 getSColor2 SOrange = Color3 0.8 0.333 0
 
-drawBox :: (Num a, VertexComponent a) => Either SColor TextureObject -> IO () -> ((a, a), (a, a)) -> a -> IO ()
-drawBox mat prep ((x, y), (w, h)) d = preservingMatrix $ do
+drawBox :: Either SColor TextureObject -> IO () -> ((Int, Int), (Int, Int)) -> Int -> IO ()
+drawBox mat prep ((x', y'), (w', h')) d' = preservingMatrix $ do
+  let ((x, y), (w, h)) = ((fromIntegral x', fromIntegral y'), (fromIntegral w', fromIntegral h'))
+      d :: GLint
+      d = fromIntegral d'
   loadIdentity
   prep
   case mat of
@@ -72,13 +75,13 @@ drawBox mat prep ((x, y), (w, h)) d = preservingMatrix $ do
         color $ (getSColor1 scol :: Color3 GLfloat)
         vertex $ Vertex3 x       (y + h) d
 
-drawScene :: TextureObject -> IO ()
-drawScene tex = do
+drawScene :: TextureObject -> Int -> Int -> IO ()
+drawScene tex w h = do
   clear [ColorBuffer, DepthBuffer]
 
-  drawBox (Right tex)    (color $ Color3 0.4 0.4 (0.4 :: GLfloat)) ((0, 0 :: GLint), (width, height)) (-1)
-  drawBox (Left SOrange) (return ())                               ((100, 200 :: GLint), (100, 30)) 0
-  drawBox (Left SBlue)   (return ())                               ((500, 200 :: GLint), (100, 30)) 0
+  drawBox (Right tex)    (color $ Color3 0.4 0.4 (0.4 :: GLfloat)) ((0, 0), (w, h)) (-1)
+  drawBox (Left SOrange) (return ())                               ((100, 200), (100, 30)) 0
+  drawBox (Left SBlue)   (return ())                               ((500, 200), (100, 30)) 0
 
   glSwapBuffers
 
@@ -103,5 +106,5 @@ main = do
   matrixMode $= Modelview 0
   texture Texture2D $= Enabled
   tex <- loadTexture "bg.png"
-  forever (drawScene tex)
+  forever (drawScene tex width height)
 
