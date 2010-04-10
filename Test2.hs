@@ -2,6 +2,7 @@ module Main where
 
 import Control.Monad
 import Data.Maybe
+import Data.List
 import Data.Array.Storable
 import System.IO (hPutStrLn, stderr)
 import System.IO.Error hiding (catch)
@@ -97,17 +98,27 @@ data Button = Button { buttonMaterial :: Material
                      , buttonLabel    :: String
                      }
 
+button1, button2 :: Button
 button1 = Button (Left SOrange) ((100, 200), (200, 30)) "orange button"
 button2 = Button (Left SBlue)   ((500, 200), (200, 30)) "blue button"
+
+buttons :: [Button]
 buttons = [button1, button2]
 
 drawButton :: Font -> Button -> IO ()
 drawButton f b = drawBox (buttonMaterial b) (return ()) (buttonBox b) 0 (Just (buttonLabel b, f))
 
+checkButtonClicks :: Int -> [SDL.Event] -> IO ()
+checkButtonClicks h evts = putStr $ fromMaybe "" $ do
+  b <- mouseClickInAny h [ButtonLeft] (map buttonBox buttons) evts
+  bt <- find (\bt -> b == buttonBox bt) buttons
+  return $ buttonLabel bt ++ "\n"
+
 loop :: Font -> TextureObject -> Int -> Int -> IO ()
 loop f tex w h = do
   drawScene f tex w h
   evts <- pollAllSDLEvents
+  checkButtonClicks h evts
   if isJust $ specificKeyPressed [SDLK_ESCAPE] evts
     then return ()
     else loop f tex w h
