@@ -1,5 +1,4 @@
 module Main where
--- copied from nehe-tuts, Jeff Molofee '99 (ported to Haskell GHC 2005)
 
 import Control.Monad
 import Data.Array.Storable
@@ -35,47 +34,51 @@ loadTexture fp = do
           (PixelData pformat UnsignedByte imgdata)
       return texName
 
+data SColor = SBlue | SOrange
+
+getSColor1 :: (Fractional a) => SColor -> Color3 a
+getSColor1 SBlue   = Color3 0 0       0.8
+getSColor1 SOrange = Color3 1 0.62352 0
+
+getSColor2 :: (Fractional a) => SColor -> Color3 a
+getSColor2 SBlue   = Color3 0   0     0.545
+getSColor2 SOrange = Color3 0.8 0.333 0
+
+drawBox :: (Num a, VertexComponent a) => Either SColor TextureObject -> IO () -> ((a, a), (a, a)) -> a -> IO ()
+drawBox mat prep ((x, y), (w, h)) d = preservingMatrix $ do
+  loadIdentity
+  prep
+  case mat of
+    Right tex -> do
+      textureBinding Texture2D $= Just tex
+      renderPrimitive Quads $ do
+        texCoord (TexCoord2 0 (1 :: GLfloat))
+        vertex $ Vertex3 x       y       d
+        texCoord (TexCoord2 1 (1 :: GLfloat))
+        vertex $ Vertex3 (x + w) y       d
+        texCoord (TexCoord2 1 (0 :: GLfloat))
+        vertex $ Vertex3 (x + w) (y + h) d
+        texCoord (TexCoord2 0 (0 :: GLfloat))
+        vertex $ Vertex3 x       (y + h) d
+    Left scol -> do
+      textureBinding Texture2D $= Nothing
+      renderPrimitive Quads $ do
+        color $ (getSColor1 scol :: Color3 GLfloat)
+        vertex $ Vertex3 x       y       d
+        color $ (getSColor2 scol :: Color3 GLfloat)
+        vertex $ Vertex3 (x + w) y       d
+        color $ (getSColor2 scol :: Color3 GLfloat)
+        vertex $ Vertex3 (x + w) (y + h) d
+        color $ (getSColor1 scol :: Color3 GLfloat)
+        vertex $ Vertex3 x       (y + h) d
+
 drawScene :: TextureObject -> IO ()
 drawScene tex = do
   clear [ColorBuffer, DepthBuffer]
-  loadIdentity
 
-  color $ Color3 0.4 0.4 (0.4 :: GLfloat)
-  textureBinding Texture2D $= Just tex
-  renderPrimitive Quads $ do
-    texCoord (TexCoord2 0 (1 :: GLfloat))
-    vertex (Vertex3 0 0          (-1::GLfloat))
-    texCoord (TexCoord2 1 (1 :: GLfloat))
-    vertex (Vertex3 width 0      (-1::GLfloat))
-    texCoord (TexCoord2 1 (0 :: GLfloat))
-    vertex (Vertex3 width height (-1::GLfloat))
-    texCoord (TexCoord2 0 (0 :: GLfloat))
-    vertex (Vertex3 0 height     (-1::GLfloat))
-
-  textureBinding Texture2D $= Nothing
-  preservingMatrix $ do
-    translate $ Vector3 100 200 (0 :: GLfloat)
-    renderPrimitive Quads $ do
-      color  $ Color3  1   0.62352 (0 ::GLfloat)
-      vertex $ Vertex3 0   0       (0 ::GLfloat)
-      color  $ Color3  0.8 0.33333 (0 ::GLfloat)
-      vertex $ Vertex3 100 0       (0 ::GLfloat)
-      color  $ Color3  0.8 0.33333 (0 ::GLfloat)
-      vertex $ Vertex3 100 30      (0 ::GLfloat)
-      color  $ Color3  1   0.62352 (0 ::GLfloat)
-      vertex $ Vertex3 0   30      (0 ::GLfloat)
-
-  preservingMatrix $ do
-    translate $ Vector3 500 200 (0 :: GLfloat)
-    renderPrimitive Quads $ do
-      color  $ Color3  0   0       (0.8 ::GLfloat)
-      vertex $ Vertex3 0   0       (0 ::GLfloat)
-      color  $ Color3  0   0       (0.545 ::GLfloat)
-      vertex $ Vertex3 100 0       (0 ::GLfloat)
-      color  $ Color3  0   0       (0.545 ::GLfloat)
-      vertex $ Vertex3 100 30      (0 ::GLfloat)
-      color  $ Color3  0   0       (0.8 ::GLfloat)
-      vertex $ Vertex3 0   30      (0 ::GLfloat)
+  drawBox (Right tex)    (color $ Color3 0.4 0.4 (0.4 :: GLfloat)) ((0, 0 :: GLint), (width, height)) (-1)
+  drawBox (Left SOrange) (return ())                               ((100, 200 :: GLint), (100, 30)) 0
+  drawBox (Left SBlue)   (return ())                               ((500, 200 :: GLint), (100, 30)) 0
 
   glSwapBuffers
 
