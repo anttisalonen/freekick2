@@ -2,7 +2,8 @@ module Main where
 
 import Control.Monad
 import Data.Array.Storable
-import System.IO.Error
+import System.IO (hPutStrLn, stderr)
+import System.IO.Error hiding (catch)
 import Control.Exception
 import Prelude hiding (catch)
 
@@ -10,10 +11,6 @@ import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
 
 import Codec.Image.PNG
-
-width, height :: (Num a) => a
-width = 800
-height = 600
 
 loadTexture :: FilePath -> IO TextureObject
 loadTexture fp = do
@@ -96,7 +93,13 @@ setCamera ((minx', miny'), (diffx', diffy')) = do
   matrixMode $= Modelview 0
 
 main :: IO ()
-main = do
+main = catch run (\e -> hPutStrLn stderr $ "Exception: " ++ show (e :: IOException))
+
+run :: IO ()
+run = do
+  let width, height :: (Num a) => a
+      width = 800
+      height = 600
   _ <- setVideoMode width height 0 [OpenGL]
   depthFunc $= Just Less
   clearColor $= Color4 0 0 0 1
