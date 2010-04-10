@@ -81,6 +81,8 @@ drawBox mat prep ((x', y'), (w', h')) d' stf = preservingMatrix $ do
     Just (str, f) -> do
       color $ Color3 0 0 (0 :: GLint)
       translate $ Vector3 6 6 (1 :: GLfloat)
+      textlen <- getFontAdvance f str
+      translate $ Vector3 (w / 2 - realToFrac textlen / 2) 0 (0 :: GLfloat)
       renderFont f str FTGL.Front
 
 drawScene :: Font -> TextureObject -> Int -> Int -> IO ()
@@ -99,8 +101,12 @@ data Button = Button { buttonMaterial :: Material
                      }
 
 button1, button2 :: Button
-button1 = Button (Left SOrange) ((100, 200), (200, 30)) "orange button"
-button2 = Button (Left SBlue)   ((500, 200), (200, 30)) "blue button"
+button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel
+button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel
+
+browseLabel, quitLabel :: String
+browseLabel = "Browse"
+quitLabel = "Quit"
 
 buttons :: [Button]
 buttons = [button1, button2]
@@ -108,18 +114,24 @@ buttons = [button1, button2]
 drawButton :: Font -> Button -> IO ()
 drawButton f b = drawBox (buttonMaterial b) (return ()) (buttonBox b) 0 (Just (buttonLabel b, f))
 
-checkButtonClicks :: Int -> [SDL.Event] -> IO ()
-checkButtonClicks h evts = putStr $ fromMaybe "" $ do
-  b <- mouseClickInAny h [ButtonLeft] (map buttonBox buttons) evts
-  bt <- find (\bt -> b == buttonBox bt) buttons
-  return $ buttonLabel bt ++ "\n"
+checkButtonClicks :: Int -> [SDL.Event] -> IO Bool
+checkButtonClicks h evts = do
+  let mlbl = liftM buttonLabel $ 
+               mouseClickInAny h [ButtonLeft] (map buttonBox buttons) evts >>= \b ->
+               find (\bt -> b == buttonBox bt) buttons
+  case mlbl of
+    Nothing  -> return False
+    Just lbl -> do
+      putStrLn lbl
+      return (lbl == quitLabel)
 
 loop :: Font -> TextureObject -> Int -> Int -> IO ()
 loop f tex w h = do
   drawScene f tex w h
   evts <- pollAllSDLEvents
-  checkButtonClicks h evts
-  if isJust $ specificKeyPressed [SDLK_ESCAPE] evts
+  qbtpressed <- checkButtonClicks h evts
+  let escpressed = isJust $ specificKeyPressed [SDLK_ESCAPE] evts
+  if qbtpressed || escpressed
     then return ()
     else loop f tex w h
 
