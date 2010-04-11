@@ -10,7 +10,7 @@ import Control.Exception
 import Prelude hiding (catch)
 import Data.Ord
 import Data.Function
-import Control.Monad.Reader
+import Control.Monad.State as State
 import Control.Applicative
 
 import Graphics.Rendering.OpenGL as OpenGL
@@ -121,11 +121,19 @@ data RenderContext = RenderContext {
 data WorldContext = WorldContext {
     rendercontext :: RenderContext
   , worldteams    :: TeamStructure
+  , hometeam      :: Maybe SWOSTeam
+  , awayteam      :: Maybe SWOSTeam
   }
+
+modHometeam :: (Maybe SWOSTeam -> Maybe SWOSTeam) -> WorldContext -> WorldContext
+modHometeam f c = c{hometeam = f (hometeam c)}
+
+modAwayteam :: (Maybe SWOSTeam -> Maybe SWOSTeam) -> WorldContext -> WorldContext
+modAwayteam f c = c{awayteam = f (awayteam c)}
 
 type TeamStructure = Tree String (String, [SWOSTeam])
 
-type MenuBlock = ReaderT WorldContext IO
+type MenuBlock = StateT WorldContext IO
 
 structureTeams :: [SWOSTeam] -> TeamStructure
 structureTeams ts = f "World" ts (countryContinent . nationToString, continentToString) `g` (teamnation, nationToString) `g` (teamdivision, divisionToString)
@@ -241,12 +249,12 @@ countryContinent _ = OtherContinent
 
 getFontAndTexture :: MenuBlock (Font, TextureObject)
 getFontAndTexture = do
-  c <- rendercontext <$> ask
+  c <- rendercontext <$> State.get
   return (renderfont c, bgtexture c)
 
 getTwoFonts :: MenuBlock (Font, Font)
 getTwoFonts = do
-  c <- rendercontext <$> ask
+  c <- rendercontext <$> State.get
   return (renderfont c, smallerfont c)
 
 getTSLabel :: TeamStructure -> String
@@ -269,30 +277,62 @@ getTSChildrenByTitle ts n =
     Left ts'  -> liftM Left  $ find (\t -> getTSLabel t == n) ts'
     Right tms -> liftM Right $ find (\t -> teamname t == n) tms
 
+hasJust :: (Eq a) => a -> Maybe a -> Bool
+hasJust _ Nothing  = False
+hasJust n (Just m) = n == m
+
+isHomeOrAway :: String -> WorldContext -> Bool
+isHomeOrAway t c = 
+  hasJust t (liftM teamname (hometeam c)) || 
+  hasJust t (liftM teamname (awayteam c))
+
+clickedOnTeam :: SWOSTeam -> MenuBlock ()
+clickedOnTeam t = do
+  c <- State.get
+  liftIO . putStrLn $ "chose team: " ++ (teamname t)
+  if hasJust (teamname t) (liftM teamname (hometeam c))
+    then modify $ modHometeam $ const Nothing
+    else if hasJust (teamname t) (liftM teamname (awayteam c))
+           then modify $ modAwayteam $ const Nothing
+           else if isNothing (hometeam c)
+                  then modify $ modHometeam $ const $ Just t
+                  else if isNothing (awayteam c)
+                         then modify $ modAwayteam $ const $ Just t
+                         else return ()
+
 browseTeams :: TeamStructure -> ButtonHandler
 browseTeams toplevel _ = do
+  let (_, labels) = getTSTitles toplevel
+  if length labels == 1
+    then browserButtonHandler toplevel (head labels)
+    else do
+      mutLoop (browseTeams' toplevel)
+      return False
+
+browserButtonHandler :: TeamStructure -> String -> MenuBlock Bool
+browserButtonHandler toplevel lbl =
+  case getTSChildrenByTitle toplevel lbl of
+    Nothing        -> return False
+    Just (Left t)  -> browseTeams t (getTSLabel t)
+    Just (Right t) -> clickedOnTeam t >> return False
+
+browseTeams' :: TeamStructure -> MenuBlock [Button (MenuBlock Bool)]
+browseTeams' toplevel = do
   let (title, labels) = getTSTitles toplevel
+  c <- State.get
   (f1, f2) <- getTwoFonts
   (w, h) <- liftIO $ getWindowSize
   let quitlabel = "Quit"
       quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel f1 (\_ -> return True)
       teambuttons = map 
         (\(n, t) -> 
-           Button (Left SOrange) 
+           Button (Left (if isHomeOrAway t c then SBlue else SOrange)) 
                   ((20 + 250 * (n `mod` 3), h - 100 - (n `div` 3) * 25), (240, 20)) 
-                  t f2 lhandler) 
+                  t f2 (browserButtonHandler toplevel)) 
         (zip [0..] labels)
       titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title f1 (\_ -> return False)
       allbuttons = quitbutton : titlebutton : teambuttons
-      lhandler lbl = case getTSChildrenByTitle toplevel lbl of
-                       Nothing        -> return False
-                       Just (Left t)  -> browseTeams t (getTSLabel t)
-                       Just (Right t) -> liftIO (putStrLn $ "chose team: " ++ (teamname t)) >> return False
-  if length teambuttons == 1
-    then buttonAction (head teambuttons) (buttonLabel (head teambuttons))
-    else do
-      genLoop allbuttons
-      return False
+  return allbuttons
 
 splitBy :: (Ord b) => (a -> b) -> [a] -> [[a]]
 splitBy f = groupBy ((==) `on` f) . sortBy (comparing f)
@@ -313,8 +353,9 @@ checkGenButtonClicks btns evts = do
 
 type ButtonHandler = String -> MenuBlock Bool
 
-genLoop :: [Button (MenuBlock Bool)] -> MenuBlock ()
-genLoop btns = do
+mutLoop :: MenuBlock [Button (MenuBlock Bool)] -> MenuBlock ()
+mutLoop f = do
+  btns <- f
   (_, tex) <- getFontAndTexture
   liftIO $ drawGenScene tex btns
   evts <- liftIO $ pollAllSDLEvents
@@ -322,7 +363,10 @@ genLoop btns = do
   let escpressed = isJust $ specificKeyPressed [SDLK_ESCAPE] evts
   if back || escpressed
     then return ()
-    else genLoop btns
+    else mutLoop f
+
+genLoop :: [Button (MenuBlock Bool)] -> MenuBlock ()
+genLoop btns = mutLoop (return btns)
 
 type Camera = ((Int, Int), (Int, Int))
 
@@ -371,5 +415,5 @@ run = do
       quitLabel = "Quit"
       buttons = [button1, button2]
       rc = RenderContext f f2 tex
-  runReaderT (genLoop buttons) (WorldContext rc allteams)
+  evalStateT (genLoop buttons) (WorldContext rc allteams Nothing Nothing)
 
