@@ -166,34 +166,8 @@ browseTeams toplevel _ = do
   genLoop allbuttons [(quitlabel, qhandler)]
   return False
 
-data Nation = Nation {
-    natnumber :: Int
-  , divisions :: [Division]
-  }
-
-data Division = Division {
-    divnumber :: Int
-  , divnation :: Int
-  , divteams :: [SWOSTeam]
-  }
-
 splitBy :: (Ord b) => (a -> b) -> [a] -> [[a]]
 splitBy f = groupBy ((==) `on` f) . sortBy (comparing f)
-
-splitToNations :: [Division] -> [[Division]]
-splitToNations = splitBy divnation
-
-splitToDivisions :: [SWOSTeam] -> [[SWOSTeam]]
-splitToDivisions = splitBy teamdivision
-
-arrangeTeams :: [SWOSTeam] -> [Nation]
-arrangeTeams ts = map mkNation (splitToNations (map mkDivision (splitToDivisions ts)))
-
-mkDivision :: [SWOSTeam] -> Division
-mkDivision ts = Division (teamdivision (head ts)) (teamnation (head ts)) ts
-
-mkNation :: [Division] -> Nation
-mkNation ds = Nation (teamnation $ head $ divteams $ head ds) ds
 
 checkGenButtonClicks :: [(String, ButtonHandler)] -> [Button] -> [SDL.Event] -> MenuBlock Bool
 checkGenButtonClicks btnhandlers btns evts = do
