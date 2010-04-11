@@ -56,8 +56,8 @@ packTwo s1 s2 =
   in putWord8 (a `shiftL` 4 .|. (b .&. 15))
 
 data SWOSTeamFile = SWOSTeamFile {
-    numteams :: Int
-  , teams    :: [SWOSTeam]
+    numteams  :: Int
+  , fileteams :: [SWOSTeam]
   }
   deriving (Show, Read, Eq)
 
@@ -120,7 +120,7 @@ instance Binary SWOSTeamFile where
   put s = do
     putWord8 0x00
     putWord8Int (numteams s)
-    mapM_ put (take (numteams s) (teams s))
+    mapM_ put (take (numteams s) (fileteams s))
   get = do
     _ <- get :: Get Word8
     n <- fromIntegral <$> getWord8
@@ -216,7 +216,7 @@ instance Binary SWOSSkills where
     return $ SWOSSkills p v h t c s f
 
 loadTeamsFromFile :: FilePath -> IO [SWOSTeam]
-loadTeamsFromFile fp = liftM teams (decodeFile fp)
+loadTeamsFromFile fp = liftM fileteams (decodeFile fp)
 
 loadTeamsFromDirectory :: FilePath -> IO [SWOSTeam]
 loadTeamsFromDirectory fp = do
