@@ -85,9 +85,10 @@ drawBox mat prep ((x', y'), (w', h')) d' stf = preservingMatrix $ do
       translate $ Vector3 (w / 2 - realToFrac textlen / 2) 0 (0 :: GLfloat)
       renderFont f str FTGL.Front
 
-drawScene :: Font -> TextureObject -> Int -> Int -> IO ()
-drawScene f tex w h = do
+drawScene :: Font -> TextureObject -> IO ()
+drawScene f tex = do
   clear [ColorBuffer, DepthBuffer]
+  (w, h) <- getWindowSize
 
   drawBox (Right tex) (color $ Color3 0.4 0.4 (0.4 :: GLfloat)) ((0, 0), (w, h)) (-1) Nothing
   mapM_ (drawButton f) buttons
@@ -114,26 +115,31 @@ buttons = [button1, button2]
 drawButton :: Font -> Button -> IO ()
 drawButton f b = drawBox (buttonMaterial b) (return ()) (buttonBox b) 0 (Just (buttonLabel b, f))
 
-checkButtonClicks :: Int -> [SDL.Event] -> IO Bool
-checkButtonClicks h evts = do
+browseTeams :: IO ()
+browseTeams = return ()
+
+checkButtonClicks :: [SDL.Event] -> IO Bool
+checkButtonClicks evts = do
+  btnsclicked <- mouseClickInAnyM [ButtonLeft] (map buttonBox buttons) evts
   let mlbl = liftM buttonLabel $ 
-               mouseClickInAny h [ButtonLeft] (map buttonBox buttons) evts >>= \b ->
+               btnsclicked >>= \b ->
                find (\bt -> b == buttonBox bt) buttons
   case mlbl of
     Nothing  -> return False
     Just lbl -> do
       putStrLn lbl
+      when (lbl == "Browse") browseTeams
       return (lbl == quitLabel)
 
-loop :: Font -> TextureObject -> Int -> Int -> IO ()
-loop f tex w h = do
-  drawScene f tex w h
+loop :: Font -> TextureObject -> IO ()
+loop f tex = do
+  drawScene f tex
   evts <- pollAllSDLEvents
-  qbtpressed <- checkButtonClicks h evts
+  qbtpressed <- checkButtonClicks evts
   let escpressed = isJust $ specificKeyPressed [SDLK_ESCAPE] evts
   if qbtpressed || escpressed
     then return ()
-    else loop f tex w h
+    else loop f tex
 
 type Camera = ((Int, Int), (Int, Int))
 
@@ -174,5 +180,5 @@ run = do
   texture Texture2D $= Enabled
   tex <- loadTexture "bg.png"
   f <- loadDataFont "DejaVuSans.ttf"
-  loop f tex width height
+  loop f tex
 
