@@ -9,6 +9,7 @@ import qualified Data.ByteString.Char8 as C
 import Control.Monad
 import Control.Applicative
 import Data.Char
+import System.Environment
 
 getWord8Int :: Get Int
 getWord8Int = fromIntegral <$> getWord8
@@ -51,7 +52,7 @@ data SWOSTeamFile = SWOSTeamFile {
     numteams :: Int
   , teams    :: [SWOSTeam]
   }
-  deriving (Show)
+  deriving (Show, Read, Eq)
 
 data SWOSTeam = SWOSTeam {
     teamnation     :: Int
@@ -66,7 +67,7 @@ data SWOSTeam = SWOSTeam {
   , teamplpos      :: C.ByteString
   , teamplayers    :: [SWOSPlayer]
   }
-  deriving (Show)
+  deriving (Show, Read, Eq)
 
 data SWOSKit = SWOSKit {
     kittype         :: Int
@@ -75,7 +76,7 @@ data SWOSKit = SWOSKit {
   , kitshortcolor   :: Int
   , kitsockscolor   :: Int
   }
-  deriving (Show)
+  deriving (Show, Read, Eq)
 
 data SWOSPlayer = SWOSPlayer {
     plnationality :: Int
@@ -89,7 +90,7 @@ data SWOSPlayer = SWOSPlayer {
   , plvalue       :: Int
   , plcareerbytes :: C.ByteString
   }
-  deriving (Show)
+  deriving (Show, Read, Eq)
 
 data SWOSSkills = SWOSSkills {
     skpassing   :: Int
@@ -100,7 +101,7 @@ data SWOSSkills = SWOSSkills {
   , skspeed     :: Int
   , skfinishing :: Int
   }
-  deriving (Show)
+  deriving (Show, Read, Eq)
 
 nullPlayer :: SWOSPlayer
 nullPlayer = SWOSPlayer 0 0 "" 0 0 0 0 nullSkills 0 (C.replicate 5 '\0')
@@ -130,8 +131,8 @@ instance Binary SWOSTeam where
     putWord8Int (teamdivision s)
     put (primarykit s)
     put (secondarykit s)
-    putName 25 (caps $ teamcoachname s)
-    putBytes 15 (teamplpos s)
+    putName 24 (caps $ teamcoachname s)
+    putBytes 16 (teamplpos s)
     mapM_ put (take 16 $ teamplayers s ++ repeat nullPlayer)
   get = do
     b1 <- getWord8Int
@@ -143,8 +144,8 @@ instance Binary SWOSTeam where
     b6 <- getWord8Int
     kit1 <- get
     kit2 <- get
-    cn <- getBytes 25
-    pp  <- getBytes 15
+    cn <- getBytes 24
+    pp  <- getBytes 16
     pls <- replicateM 16 get
     return $ SWOSTeam b1 b2 b3 (getName tn) b5 b6 kit1 kit2 (getName cn) pp pls
 
@@ -206,4 +207,15 @@ instance Binary SWOSSkills where
         s = b4 `shiftR` 4
         f = b4 .&. 15
     return $ SWOSSkills p v h t c s f
+
+main :: IO ()
+main = do
+  args <- getArgs
+  if length args < 2
+    then putStrLn "Usage: progname <inputfile> <outputfile>"
+    else do
+      let infile = args !! 0
+          outfile = args !! 1
+      n <- decodeFile infile :: IO SWOSTeamFile
+      encodeFile outfile n
 
