@@ -106,13 +106,20 @@ data Button = Button { buttonMaterial :: Material
 drawButton :: Font -> Button -> IO ()
 drawButton f b = drawBox (buttonMaterial b) (return ()) (buttonBox b) 0 (Just (buttonLabel b, f))
 
-browseTeams :: IO ()
-browseTeams = do
+browseTeams :: String -> Font -> TextureObject -> IO Bool
+browseTeams _ f tex = do
   allteams <- loadTeamsFromDirectory "teams"
   let nations = arrangeTeams allteams
   print $ length allteams
   print $ length nations
-  mapM_ putStrLn (map teamname allteams)
+  (_, h) <- getWindowSize
+  let quitlabel = "Quit"
+      quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel
+      teambuttons = map (\(n, t) -> Button (Left SOrange) ((20 + 250 * (n `mod` 3), h - (n `div` 3) * 40), (240, 30)) (teamname t)) (zip [1..] allteams)
+      allbuttons = quitbutton : teambuttons
+      qhandler = \_ _ _ -> return True
+  genLoop f tex allbuttons [(quitlabel, qhandler)]
+  return False
 
 data Nation = Nation {
     natnumber :: Int
@@ -125,11 +132,14 @@ data Division = Division {
   , divteams :: [SWOSTeam]
   }
 
+splitBy :: (Ord b) => (a -> b) -> [a] -> [[a]]
+splitBy f = groupBy ((==) `on` f) . sortBy (comparing f)
+
 splitToNations :: [Division] -> [[Division]]
-splitToNations ts = groupBy ((==) `on` divnation) (sortBy (comparing divnation) ts)
+splitToNations = splitBy divnation
 
 splitToDivisions :: [SWOSTeam] -> [[SWOSTeam]]
-splitToDivisions ts = groupBy ((==) `on` teamdivision) (sortBy (comparing teamdivision) ts)
+splitToDivisions = splitBy teamdivision
 
 arrangeTeams :: [SWOSTeam] -> [Nation]
 arrangeTeams ts = map mkNation (splitToNations (map mkDivision (splitToDivisions ts)))
@@ -140,8 +150,8 @@ mkDivision ts = Division (teamdivision (head ts)) (teamnation (head ts)) ts
 mkNation :: [Division] -> Nation
 mkNation ds = Nation (teamnation $ head $ divteams $ head ds) ds
 
-checkGenButtonClicks :: [(String, IO Bool)] -> [Button] -> [SDL.Event] -> IO Bool
-checkGenButtonClicks btnhandlers btns evts = do
+checkGenButtonClicks :: [(String, String -> Font -> TextureObject -> IO Bool)] -> [Button] -> [SDL.Event] -> Font -> TextureObject -> IO Bool
+checkGenButtonClicks btnhandlers btns evts f tex = do
   btnsclicked <- mouseClickInAnyM [ButtonLeft] (map buttonBox btns) evts
   let mlbl = liftM buttonLabel $ 
                btnsclicked >>= \b ->
@@ -152,13 +162,13 @@ checkGenButtonClicks btnhandlers btns evts = do
       let mact = lookup lbl btnhandlers
       case mact of
         Nothing  -> return False
-        Just act -> act
+        Just act -> act lbl f tex
 
-genLoop :: Font -> TextureObject -> [Button] -> [(String, IO Bool)] -> IO ()
+genLoop :: Font -> TextureObject -> [Button] -> [(String, String -> Font -> TextureObject -> IO Bool)] -> IO ()
 genLoop f tex btns btnhandlers = do
   drawGenScene f tex btns
   evts <- pollAllSDLEvents
-  back <- checkGenButtonClicks btnhandlers btns evts
+  back <- checkGenButtonClicks btnhandlers btns evts f tex
   let escpressed = isJust $ specificKeyPressed [SDLK_ESCAPE] evts
   if back || escpressed
     then return ()
@@ -208,5 +218,5 @@ run = do
       browseLabel = "Browse"
       quitLabel = "Quit"
       buttons = [button1, button2]
-  genLoop f tex buttons [(browseLabel, browseTeams >> return False), (quitLabel, return True)]
+  genLoop f tex buttons [(browseLabel, browseTeams), (quitLabel, \_ _ _ -> return True)]
 
