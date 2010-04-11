@@ -86,17 +86,18 @@ drawBox mat prep ((x', y'), (w', h')) d' stf = preservingMatrix $ do
     Nothing       -> return ()
     Just (str, f) -> do
       color $ Color3 0 0 (0 :: GLint)
-      translate $ Vector3 6 6 (1 :: GLfloat)
+      pts <- getFontFaceSize f
+      translate $ Vector3 (fromIntegral $ pts `div` 4) (fromIntegral $ pts `div` 4) (1 :: GLfloat)
       textlen <- getFontAdvance f str
       translate $ Vector3 (w / 2 - realToFrac textlen / 2) 0 (0 :: GLfloat)
       renderFont f str FTGL.Front
 
-drawGenScene :: Font -> TextureObject -> [Button a] -> IO ()
-drawGenScene f tex btns = do
+drawGenScene :: TextureObject -> [Button a] -> IO ()
+drawGenScene tex btns = do
   clear [ColorBuffer, DepthBuffer]
   (w, h) <- getWindowSize
   drawBox (Right tex) (color $ Color3 0.4 0.4 (0.4 :: GLfloat)) ((0, 0), (w, h)) (-1) Nothing
-  mapM_ (drawButton f) btns
+  mapM_ drawButton btns
   glSwapBuffers
 
 type Material = Either SColor TextureObject
@@ -104,15 +105,17 @@ type Material = Either SColor TextureObject
 data Button a = Button { buttonMaterial :: Material
                        , buttonBox      :: Camera
                        , buttonLabel    :: String
+                       , buttonFont     :: Font
                        , buttonAction   :: String -> a
                        }
 
-drawButton :: Font -> Button a -> IO ()
-drawButton f b = drawBox (buttonMaterial b) (return ()) (buttonBox b) 0 (Just (buttonLabel b, f))
+drawButton :: Button a -> IO ()
+drawButton b = drawBox (buttonMaterial b) (return ()) (buttonBox b) 0 (Just (buttonLabel b, buttonFont b))
 
 data RenderContext = RenderContext {
-    renderfont :: Font
-  , bgtexture  :: TextureObject
+    renderfont  :: Font
+  , smallerfont :: Font
+  , bgtexture   :: TextureObject
   }
 
 data WorldContext = WorldContext {
@@ -241,6 +244,11 @@ getFontAndTexture = do
   c <- rendercontext <$> ask
   return (renderfont c, bgtexture c)
 
+getTwoFonts :: MenuBlock (Font, Font)
+getTwoFonts = do
+  c <- rendercontext <$> ask
+  return (renderfont c, smallerfont c)
+
 getTSLabel :: TeamStructure -> String
 getTSLabel (Node i _)    = i
 getTSLabel (Leaf (i, _)) = i
@@ -264,16 +272,17 @@ getTSChildrenByTitle ts n =
 browseTeams :: TeamStructure -> ButtonHandler
 browseTeams toplevel _ = do
   let (title, labels) = getTSTitles toplevel
+  (f1, f2) <- getTwoFonts
   (w, h) <- liftIO $ getWindowSize
   let quitlabel = "Quit"
-      quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel (\_ -> return True)
+      quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel f1 (\_ -> return True)
       teambuttons = map 
         (\(n, t) -> 
            Button (Left SOrange) 
-                  ((20 + 250 * (n `mod` 3), h - 100 - (n `div` 3) * 40), (240, 30)) 
-                  t lhandler) 
+                  ((20 + 250 * (n `mod` 3), h - 100 - (n `div` 3) * 25), (240, 20)) 
+                  t f2 lhandler) 
         (zip [0..] labels)
-      titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title (\_ -> return False)
+      titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title f1 (\_ -> return False)
       allbuttons = quitbutton : titlebutton : teambuttons
       lhandler lbl = case getTSChildrenByTitle toplevel lbl of
                        Nothing        -> return False
@@ -303,8 +312,8 @@ type ButtonHandler = String -> MenuBlock Bool
 
 genLoop :: [Button (MenuBlock Bool)] -> MenuBlock ()
 genLoop btns = do
-  (f, tex) <- getFontAndTexture
-  liftIO $ drawGenScene f tex btns
+  (_, tex) <- getFontAndTexture
+  liftIO $ drawGenScene tex btns
   evts <- liftIO $ pollAllSDLEvents
   back <- checkGenButtonClicks btns evts
   let escpressed = isJust $ specificKeyPressed [SDLK_ESCAPE] evts
@@ -325,14 +334,14 @@ setCamera ((minx', miny'), (diffx', diffy')) = do
 main :: IO ()
 main = catch run (\e -> hPutStrLn stderr $ "Exception: " ++ show (e :: IOException))
 
-loadDataFont :: FilePath -> IO Font
-loadDataFont fp = do
+loadDataFont :: Int -> Int -> FilePath -> IO Font
+loadDataFont sz pt fp = do
   -- fn <- getDataFileName fp
   -- exists <- doesFileExist fn
   -- when (not exists) $ do
     -- throwIO $ mkIOError doesNotExistErrorType "loading data font during initialization" Nothing (Just fn)
   f <- createTextureFont fp
-  _ <- setFontFaceSize f 24 48
+  _ <- setFontFaceSize f sz pt
   return f
 
 run :: IO ()
@@ -350,13 +359,14 @@ run = do
   matrixMode $= Modelview 0
   texture Texture2D $= Enabled
   tex <- loadTexture "bg.png"
-  f <- loadDataFont "DejaVuSans.ttf"
+  f <- loadDataFont 24 48 "DejaVuSans.ttf"
+  f2 <- loadDataFont 16 48 "DejaVuSans.ttf"
   allteams <- structureTeams `fmap` loadTeamsFromDirectory "teams"
-  let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel (\_ -> return True)
-      button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel (browseTeams allteams)
+  let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel f (\_ -> return True)
+      button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel f (browseTeams allteams)
       browseLabel = "Browse"
       quitLabel = "Quit"
       buttons = [button1, button2]
-      rc = RenderContext f tex
+      rc = RenderContext f f2 tex
   runReaderT (genLoop buttons) (WorldContext rc allteams)
 
