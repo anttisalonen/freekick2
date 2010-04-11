@@ -41,15 +41,17 @@ loadTexture fp = do
           (PixelData pformat UnsignedByte imgdata)
       return texName
 
-data SColor = SBlue | SOrange
+data SColor = SBlue | SOrange | SRed
 
 getSColor1 :: (Fractional a) => SColor -> Color3 a
-getSColor1 SBlue   = Color3 0 0       0.8
-getSColor1 SOrange = Color3 1 0.62352 0
+getSColor1 SBlue   = Color3 0.6784 0.8470 0.9019 -- light blue
+getSColor1 SOrange = Color3 1 0.62352 0 -- orange peel
+getSColor1 SRed    = Color3 1 0.6509 0.7882 -- carnation pink
 
 getSColor2 :: (Fractional a) => SColor -> Color3 a
-getSColor2 SBlue   = Color3 0   0     0.545
-getSColor2 SOrange = Color3 0.8 0.333 0
+getSColor2 SBlue   = Color3 0.0 0.0   0.803 -- medium blue
+getSColor2 SOrange = Color3 0.8 0.333 0 -- burnt orange
+getSColor2 SRed    = Color3 0.9843 0.3764 0.5 -- brink pink
 
 drawBox :: Either SColor TextureObject -> IO () -> ((Int, Int), (Int, Int)) -> Int -> Maybe (String, Font) -> IO ()
 drawBox mat prep ((x', y'), (w', h')) d' stf = preservingMatrix $ do
@@ -121,14 +123,16 @@ data RenderContext = RenderContext {
 data WorldContext = WorldContext {
     rendercontext :: RenderContext
   , worldteams    :: TeamStructure
-  , hometeam      :: Maybe SWOSTeam
-  , awayteam      :: Maybe SWOSTeam
+  , hometeam      :: Maybe (SWOSTeam, TeamOwner)
+  , awayteam      :: Maybe (SWOSTeam, TeamOwner)
   }
 
-modHometeam :: (Maybe SWOSTeam -> Maybe SWOSTeam) -> WorldContext -> WorldContext
+data TeamOwner = HumanOwner | AIOwner
+
+modHometeam :: (Maybe (SWOSTeam, TeamOwner) -> Maybe (SWOSTeam, TeamOwner)) -> WorldContext -> WorldContext
 modHometeam f c = c{hometeam = f (hometeam c)}
 
-modAwayteam :: (Maybe SWOSTeam -> Maybe SWOSTeam) -> WorldContext -> WorldContext
+modAwayteam :: (Maybe (SWOSTeam, TeamOwner) -> Maybe (SWOSTeam, TeamOwner)) -> WorldContext -> WorldContext
 modAwayteam f c = c{awayteam = f (awayteam c)}
 
 type TeamStructure = Tree String (String, [SWOSTeam])
@@ -281,23 +285,33 @@ hasJust :: (Eq a) => a -> Maybe a -> Bool
 hasJust _ Nothing  = False
 hasJust n (Just m) = n == m
 
-isHomeOrAway :: String -> WorldContext -> Bool
-isHomeOrAway t c = 
-  hasJust t (liftM teamname (hometeam c)) || 
-  hasJust t (liftM teamname (awayteam c))
+rotateTeam :: SWOSTeam -> Maybe (SWOSTeam, TeamOwner) -> Maybe (SWOSTeam, TeamOwner)
+rotateTeam t Nothing                = Just (t, HumanOwner)
+rotateTeam _ (Just (t, HumanOwner)) = Just (t, AIOwner)
+rotateTeam _ (Just (_, AIOwner))    = Nothing
+
+getOwner :: String -> WorldContext -> Maybe TeamOwner
+getOwner t c =
+  let t1 = case hometeam c of
+             Nothing       -> Nothing
+             Just (ht, ho) -> if teamname ht == t then Just ho else Nothing
+      t2 = case awayteam c of
+             Nothing       -> Nothing
+             Just (ht, ho) -> if teamname ht == t then Just ho else Nothing
+  in t1 `mplus` t2
 
 clickedOnTeam :: SWOSTeam -> MenuBlock ()
 clickedOnTeam t = do
   c <- State.get
   liftIO . putStrLn $ "chose team: " ++ (teamname t)
-  if hasJust (teamname t) (liftM teamname (hometeam c))
-    then modify $ modHometeam $ const Nothing
-    else if hasJust (teamname t) (liftM teamname (awayteam c))
-           then modify $ modAwayteam $ const Nothing
+  if hasJust (teamname t) (liftM (teamname . fst) (hometeam c))
+    then modify $ modHometeam $ rotateTeam t
+    else if hasJust (teamname t) (liftM (teamname . fst) (awayteam c))
+           then modify $ modAwayteam $ rotateTeam t
            else if isNothing (hometeam c)
-                  then modify $ modHometeam $ const $ Just t
+                  then modify $ modHometeam $ rotateTeam t
                   else if isNothing (awayteam c)
-                         then modify $ modAwayteam $ const $ Just t
+                         then modify $ modAwayteam $ rotateTeam t
                          else return ()
 
 browseTeams :: TeamStructure -> ButtonHandler
@@ -316,6 +330,16 @@ browserButtonHandler toplevel lbl =
     Just (Left t)  -> browseTeams t (getTSLabel t)
     Just (Right t) -> clickedOnTeam t >> return False
 
+continueToMatch :: MenuBlock ()
+continueToMatch = return ()
+
+ownerToColor :: String -> WorldContext -> SColor
+ownerToColor t c = 
+  case getOwner t c of
+    Nothing         -> SOrange
+    Just AIOwner    -> SRed
+    Just HumanOwner -> SBlue
+
 browseTeams' :: TeamStructure -> MenuBlock [Button (MenuBlock Bool)]
 browseTeams' toplevel = do
   let (title, labels) = getTSTitles toplevel
@@ -326,12 +350,18 @@ browseTeams' toplevel = do
       quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel f1 (\_ -> return True)
       teambuttons = map 
         (\(n, t) -> 
-           Button (Left (if isHomeOrAway t c then SBlue else SOrange)) 
+           Button (Left (ownerToColor t c))
                   ((20 + 250 * (n `mod` 3), h - 100 - (n `div` 3) * 25), (240, 20)) 
                   t f2 (browserButtonHandler toplevel)) 
         (zip [0..] labels)
       titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title f1 (\_ -> return False)
-      allbuttons = quitbutton : titlebutton : teambuttons
+      contlabel = "Play"
+      mcont = if isJust (hometeam c) && isJust (awayteam c)
+                then Just $ Button (Left SOrange) ((w - 210, 10), (200, 30)) contlabel f1 (\_ -> continueToMatch >> return False)
+                else Nothing
+      allbuttons = case mcont of
+                     Nothing -> quitbutton : titlebutton : teambuttons
+                     Just cn -> cn : quitbutton : titlebutton : teambuttons
   return allbuttons
 
 splitBy :: (Ord b) => (a -> b) -> [a] -> [[a]]
