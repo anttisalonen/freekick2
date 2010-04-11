@@ -130,9 +130,18 @@ mouseClickIn height buttons ((minx, miny), (diffx, diffy)) =
                y' <= miny + diffy
           f _ = False
 
+mouseClickInM :: [SDL.MouseButton] -> ((Int, Int), (Int, Int)) -> [SDL.Event] -> IO Bool
+mouseClickInM bs box evts = do
+  vid <- getVideoInfo
+  return $ mouseClickIn (videoInfoHeight vid) bs box evts
+
 mouseClickInAny :: Int -> [SDL.MouseButton] -> [((Int, Int), (Int, Int))] -> [SDL.Event] -> Maybe ((Int, Int), (Int, Int))
 mouseClickInAny height bs areas events = 
   foldr (\x acc -> if mouseClickIn height bs x events then Just x else acc) 
         Nothing areas
 
+mouseClickInAnyM :: [SDL.MouseButton] -> [((Int, Int), (Int, Int))] -> [SDL.Event] -> IO (Maybe ((Int, Int), (Int, Int)))
+mouseClickInAnyM bs boxes evts = do
+  vid <- getVideoInfo
+  return $ mouseClickInAny (videoInfoHeight vid) bs boxes evts
 
