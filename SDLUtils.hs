@@ -145,3 +145,8 @@ mouseClickInAnyM bs boxes evts = do
   vid <- getVideoInfo
   return $ mouseClickInAny (videoInfoHeight vid) bs boxes evts
 
+getWindowSize :: IO (Int, Int)
+getWindowSize = do
+  vid <- getVideoInfo
+  return (videoInfoWidth vid, videoInfoHeight vid)
+
