@@ -1,4 +1,8 @@
-module Main
+module Swos(SWOSTeamFile(..),
+  SWOSTeam(..),
+  SWOSPlayer(..),
+  SWOSKit(..),
+  SWOSSkills(..))
 where
 
 import Data.Bits
@@ -9,7 +13,6 @@ import qualified Data.ByteString.Char8 as C
 import Control.Monad
 import Control.Applicative
 import Data.Char
-import System.Environment
 
 getWord8Int :: Get Int
 getWord8Int = fromIntegral <$> getWord8
@@ -207,15 +210,4 @@ instance Binary SWOSSkills where
         s = b4 `shiftR` 4
         f = b4 .&. 15
     return $ SWOSSkills p v h t c s f
-
-main :: IO ()
-main = do
-  args <- getArgs
-  if length args < 2
-    then putStrLn "Usage: progname <inputfile> <outputfile>"
-    else do
-      let infile = args !! 0
-          outfile = args !! 1
-      n <- decodeFile infile :: IO SWOSTeamFile
-      encodeFile outfile n
 
