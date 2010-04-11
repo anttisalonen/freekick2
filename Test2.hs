@@ -125,7 +125,7 @@ type TeamStructure = Tree String (String, [SWOSTeam])
 type MenuBlock = ReaderT WorldContext IO
 
 structureTeams :: [SWOSTeam] -> TeamStructure
-structureTeams ts = f "World" ts (teamnation, nationToString) `g` (teamdivision, divisionToString)
+structureTeams ts = f "World" ts (countryContinent . nationToString, continentToString) `g` (teamnation, nationToString) `g` (teamdivision, divisionToString)
   where f :: (Ord a) => String -> [SWOSTeam] -> (SWOSTeam -> a, SWOSTeam -> String) -> TeamStructure
         f n teams (func, nfunc) = 
           let ts' = splitBy func teams
@@ -135,8 +135,106 @@ structureTeams ts = f "World" ts (teamnation, nationToString) `g` (teamdivision,
           go tr
             where go (Node i ts')    = Node i (map go ts')
                   go (Leaf (i, ts')) = f i ts' (func, nfunc)
-        nationToString   = showTeamNation . teamnation
-        divisionToString = showDivision . teamdivision
+        nationToString    = showTeamNation . teamnation
+        divisionToString  = showDivision . teamdivision
+        continentToString = show . countryContinent . nationToString
+
+data Continent = NorthAmerica
+               | SouthAmerica
+               | Oceania
+               | Africa
+               | Asia
+               | Europe
+               | Antarctica
+  deriving (Ord, Eq)
+
+instance Show Continent where
+  show NorthAmerica = "North America"
+  show SouthAmerica = "South America"
+  show Oceania      = "Oceania"
+  show Africa       = "Africa"
+  show Asia         = "Asia"
+  show Europe       = "Europe"
+  show Antarctica   = "Antarctica"
+
+countryContinent :: String -> Continent
+countryContinent "El Salvador" = NorthAmerica
+countryContinent "Mexico" = NorthAmerica
+countryContinent "U.S.A." = NorthAmerica
+countryContinent "Argentina" = SouthAmerica
+countryContinent "Bolivia" = SouthAmerica
+countryContinent "Brazil" = SouthAmerica
+countryContinent "Chile" = SouthAmerica
+countryContinent "Colombia" = SouthAmerica
+countryContinent "Ecuador" = SouthAmerica
+countryContinent "Paraguay" = SouthAmerica
+countryContinent "Peru" = SouthAmerica
+countryContinent "Surinam" = SouthAmerica
+countryContinent "Uruguay" = SouthAmerica
+countryContinent "Venezuela" = SouthAmerica
+countryContinent "Australia" = Oceania
+countryContinent "New Zealand" = Oceania
+countryContinent "India" = Asia
+countryContinent "Japan" = Asia
+countryContinent "Taiwan" = Asia
+countryContinent "Algeria" = Africa
+countryContinent "Ghana" = Africa
+countryContinent "South Africa" = Africa
+countryContinent "Albania" = Europe
+countryContinent "Austria" = Europe
+countryContinent "Belarus" = Europe
+countryContinent "Belgium" = Europe
+countryContinent "Bulgaria" = Europe
+countryContinent "Croatia" = Europe
+countryContinent "Cyprus" = Europe
+countryContinent "Czech Republic" = Europe
+countryContinent "Denmark" = Europe
+countryContinent "England" = Europe
+countryContinent "Estonia" = Europe
+countryContinent "Faroe Islands" = Europe
+countryContinent "Finland" = Europe
+countryContinent "France" = Europe
+countryContinent "Germany" = Europe
+countryContinent "Greece" = Europe
+countryContinent "Holland" = Europe
+countryContinent "The Netherlands" = Europe
+countryContinent "Hungary" = Europe
+countryContinent "Iceland" = Europe
+countryContinent "Israel" = Europe
+countryContinent "Italy" = Europe
+countryContinent "Latvia" = Europe
+countryContinent "Lithuania" = Europe
+countryContinent "Luxembourg" = Europe
+countryContinent "Malta" = Europe
+countryContinent "Ireland" = Europe
+countryContinent "Northern Ireland" = Europe
+countryContinent "Norway" = Europe
+countryContinent "Poland" = Europe
+countryContinent "Portugal" = Europe
+countryContinent "Republic Ireland" = Europe
+countryContinent "Romania" = Europe
+countryContinent "Russia" = Europe
+countryContinent "San Marino" = Europe
+countryContinent "Scotland" = Europe
+countryContinent "Slovakia" = Europe
+countryContinent "Slovenia" = Europe
+countryContinent "Spain" = Europe
+countryContinent "Sweden" = Europe
+countryContinent "Switzerland" = Europe
+countryContinent "Turkey" = Europe
+countryContinent "Ukraine" = Europe
+countryContinent "Wales" = Europe
+countryContinent "Yugoslavia" = Europe
+countryContinent "Bosnia-Herzegovina" = Europe
+countryContinent "Serbia" = Europe
+countryContinent "Montenegro" = Europe
+countryContinent "Kosovo" = Europe
+countryContinent "FYR Macedonia" = Europe
+countryContinent "Macedonia" = Europe
+countryContinent "Azerbaijan" = Europe
+countryContinent "Armenia" = Europe
+countryContinent "Georgia" = Europe
+countryContinent _ = Antarctica
 
 getFontAndTexture :: MenuBlock (Font, TextureObject)
 getFontAndTexture = do
