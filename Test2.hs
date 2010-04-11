@@ -11,6 +11,8 @@ import Prelude hiding (catch)
 import Data.Ord
 import Data.Function
 import Control.Monad.Reader
+import Control.Applicative
+import Data.Foldable (toList)
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -19,6 +21,7 @@ import Codec.Image.PNG
 
 import SDLUtils
 import Swos
+import Tree
 
 loadTexture :: FilePath -> IO TextureObject
 loadTexture fp = do
@@ -112,19 +115,27 @@ data RenderContext = RenderContext {
   , bgtexture  :: TextureObject
   }
 
-type Renderer = ReaderT RenderContext IO
+data WorldContext = WorldContext {
+    rendercontext :: RenderContext
+  , worldteams    :: TeamStructure
+  }
 
-getFontAndTexture :: Renderer (Font, TextureObject)
+type TeamStructure = Tree String (String, [SWOSTeam])
+
+type MenuBlock = ReaderT WorldContext IO
+
+structureTeams :: [SWOSTeam] -> TeamStructure
+structureTeams ts = Leaf ("All", ts)
+
+getFontAndTexture :: MenuBlock (Font, TextureObject)
 getFontAndTexture = do
-  c <- ask
+  c <- rendercontext <$> ask
   return (renderfont c, bgtexture c)
 
 browseTeams :: ButtonHandler
 browseTeams _ = do
-  allteams <- liftIO $ loadTeamsFromDirectory "teams"
-  let nations = arrangeTeams allteams
-  liftIO $ print $ length allteams
-  liftIO $ print $ length nations
+  allteams <- concatMap snd <$> toList <$> worldteams <$> ask
+  liftIO $ print $ length $ allteams
   (_, h) <- liftIO $ getWindowSize
   let quitlabel = "Quit"
       quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel
@@ -163,7 +174,7 @@ mkDivision ts = Division (teamdivision (head ts)) (teamnation (head ts)) ts
 mkNation :: [Division] -> Nation
 mkNation ds = Nation (teamnation $ head $ divteams $ head ds) ds
 
-checkGenButtonClicks :: [(String, ButtonHandler)] -> [Button] -> [SDL.Event] -> Renderer Bool
+checkGenButtonClicks :: [(String, ButtonHandler)] -> [Button] -> [SDL.Event] -> MenuBlock Bool
 checkGenButtonClicks btnhandlers btns evts = do
   btnsclicked <- liftIO $ mouseClickInAnyM [ButtonLeft] (map buttonBox btns) evts
   let mlbl = liftM buttonLabel $ 
@@ -177,13 +188,11 @@ checkGenButtonClicks btnhandlers btns evts = do
         Nothing  -> return False
         Just act -> act lbl 
 
-type ButtonHandler = String -> Renderer Bool
+type ButtonHandler = String -> MenuBlock Bool
 
-genLoop :: [Button] -> [(String, ButtonHandler)] -> Renderer ()
+genLoop :: [Button] -> [(String, ButtonHandler)] -> MenuBlock ()
 genLoop btns btnhandlers = do
-  c <- ask
-  let f = renderfont c
-      tex = bgtexture c
+  (f, tex) <- getFontAndTexture
   liftIO $ drawGenScene f tex btns
   evts <- liftIO $ pollAllSDLEvents
   back <- checkGenButtonClicks btnhandlers btns evts
@@ -231,10 +240,12 @@ run = do
   texture Texture2D $= Enabled
   tex <- loadTexture "bg.png"
   f <- loadDataFont "DejaVuSans.ttf"
+  allteams <- liftIO $ loadTeamsFromDirectory "teams"
   let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel
       button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel
       browseLabel = "Browse"
       quitLabel = "Quit"
       buttons = [button1, button2]
-  runReaderT (genLoop buttons [(browseLabel, browseTeams), (quitLabel, \_ -> return True)]) (RenderContext f tex) 
+      rc = RenderContext f tex
+  runReaderT (genLoop buttons [(browseLabel, browseTeams), (quitLabel, \_ -> return True)]) (WorldContext rc (structureTeams allteams))
 
