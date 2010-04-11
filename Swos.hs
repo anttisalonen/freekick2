@@ -2,7 +2,9 @@ module Swos(SWOSTeamFile(..),
   SWOSTeam(..),
   SWOSPlayer(..),
   SWOSKit(..),
-  SWOSSkills(..))
+  SWOSSkills(..),
+  loadTeamsFromFile,
+  loadTeamsFromDirectory)
 where
 
 import Data.Bits
@@ -13,6 +15,8 @@ import qualified Data.ByteString.Char8 as C
 import Control.Monad
 import Control.Applicative
 import Data.Char
+import System.Directory
+import System.FilePath
 
 getWord8Int :: Get Int
 getWord8Int = fromIntegral <$> getWord8
@@ -210,4 +214,17 @@ instance Binary SWOSSkills where
         s = b4 `shiftR` 4
         f = b4 .&. 15
     return $ SWOSSkills p v h t c s f
+
+loadTeamsFromFile :: FilePath -> IO [SWOSTeam]
+loadTeamsFromFile fp = liftM teams (decodeFile fp)
+
+loadTeamsFromDirectory :: FilePath -> IO [SWOSTeam]
+loadTeamsFromDirectory fp = do
+  fs <- getDirectoryContents fp
+  tss <- forM fs $ \f -> do
+    isfile <- doesFileExist (fp </> f)
+    if isfile
+      then loadTeamsFromFile (fp </> f)
+      else return []
+  return $ concat tss
 
