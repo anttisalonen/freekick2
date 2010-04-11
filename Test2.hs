@@ -355,6 +355,7 @@ type ButtonHandler = String -> MenuBlock Bool
 
 mutLoop :: MenuBlock [Button (MenuBlock Bool)] -> MenuBlock ()
 mutLoop f = do
+  liftIO $ SDL.delay 40
   btns <- f
   (_, tex) <- getFontAndTexture
   liftIO $ drawGenScene tex btns
