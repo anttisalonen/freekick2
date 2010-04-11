@@ -232,10 +232,10 @@ loadTeamsFromDirectory fp = do
   return $ concat tss
 
 showDivision :: Int -> String
-showDivision 0 = "Premier"
-showDivision 1 = "First"
-showDivision 2 = "Second"
-showDivision 3 = "Third"
+showDivision 0 = "Premier league"
+showDivision 1 = "First league"
+showDivision 2 = "Second league"
+showDivision 3 = "Third league"
 showDivision 4 = "Non-league"
 showDivision _ = "Unknown"
 
