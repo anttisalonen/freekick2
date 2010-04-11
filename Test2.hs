@@ -288,8 +288,11 @@ browseTeams toplevel _ = do
                        Nothing        -> return False
                        Just (Left t)  -> browseTeams t (getTSLabel t)
                        Just (Right t) -> liftIO (putStrLn $ "chose team: " ++ (teamname t)) >> return False
-  genLoop allbuttons
-  return False
+  if length teambuttons == 1
+    then buttonAction (head teambuttons) (buttonLabel (head teambuttons))
+    else do
+      genLoop allbuttons
+      return False
 
 splitBy :: (Ord b) => (a -> b) -> [a] -> [[a]]
 splitBy f = groupBy ((==) `on` f) . sortBy (comparing f)
