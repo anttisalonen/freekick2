@@ -1,4 +1,4 @@
-module Main where
+module Main() where
 
 import Control.Monad
 import Data.Maybe
@@ -12,7 +12,6 @@ import Data.Ord
 import Data.Function
 import Control.Monad.Reader
 import Control.Applicative
-import Data.Foldable (toList)
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -125,22 +124,44 @@ type TeamStructure = Tree String (String, [SWOSTeam])
 type MenuBlock = ReaderT WorldContext IO
 
 structureTeams :: [SWOSTeam] -> TeamStructure
-structureTeams ts = Leaf ("All", ts)
+structureTeams ts = f "World" ts (teamnation, nationToString) `g` (teamdivision, divisionToString)
+  where f :: (Ord a) => String -> [SWOSTeam] -> (SWOSTeam -> a, SWOSTeam -> String) -> TeamStructure
+        f n teams (func, nfunc) = 
+          let ts' = splitBy func teams
+          in Node n (map (\tp -> Leaf (nfunc (head tp), tp)) ts')
+        g :: (Ord a) => TeamStructure -> (SWOSTeam -> a, SWOSTeam -> String) -> TeamStructure
+        g tr (func, nfunc) =
+          go tr
+            where go (Node i ts')    = Node i (map go ts')
+                  go (Leaf (i, ts')) = f i ts' (func, nfunc)
+        nationToString   = show . teamnation
+        divisionToString = show . teamdivision
 
 getFontAndTexture :: MenuBlock (Font, TextureObject)
 getFontAndTexture = do
   c <- rendercontext <$> ask
   return (renderfont c, bgtexture c)
 
-browseTeams :: ButtonHandler
-browseTeams _ = do
-  allteams <- concatMap snd <$> toList <$> worldteams <$> ask
-  liftIO $ print $ length $ allteams
-  (_, h) <- liftIO $ getWindowSize
+getTeamStructureLabel :: TeamStructure -> String
+getTeamStructureLabel (Node i _)    = i
+getTeamStructureLabel (Leaf (i, _)) = i
+
+getTeamStructureChildren :: TeamStructure -> [String]
+getTeamStructureChildren (Node _ ts)    = map getTeamStructureLabel ts
+getTeamStructureChildren (Leaf (_, ts)) = map teamname ts
+
+getTeamMenuData :: TeamStructure -> (String, [String])
+getTeamMenuData t = (getTeamStructureLabel t, getTeamStructureChildren t)
+
+browseTeams :: TeamStructure -> ButtonHandler
+browseTeams toplevel _ = do
+  let (title, labels) = getTeamMenuData toplevel
+  (w, h) <- liftIO $ getWindowSize
   let quitlabel = "Quit"
       quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel
-      teambuttons = map (\(n, t) -> Button (Left SOrange) ((20 + 250 * (n `mod` 3), h - (n `div` 3) * 40), (240, 30)) (teamname t)) (zip [1..] allteams)
-      allbuttons = quitbutton : teambuttons
+      teambuttons = map (\(n, t) -> Button (Left SOrange) ((20 + 250 * (n `mod` 3), h - 100 - (n `div` 3) * 40), (240, 30)) t) (zip [0..] labels)
+      titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title
+      allbuttons = quitbutton : titlebutton : teambuttons
       qhandler = \_ -> return True
   genLoop allbuttons [(quitlabel, qhandler)]
   return False
@@ -240,12 +261,12 @@ run = do
   texture Texture2D $= Enabled
   tex <- loadTexture "bg.png"
   f <- loadDataFont "DejaVuSans.ttf"
-  allteams <- liftIO $ loadTeamsFromDirectory "teams"
+  allteams <- structureTeams `fmap` loadTeamsFromDirectory "teams"
   let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel
       button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel
       browseLabel = "Browse"
       quitLabel = "Quit"
       buttons = [button1, button2]
       rc = RenderContext f tex
-  runReaderT (genLoop buttons [(browseLabel, browseTeams), (quitLabel, \_ -> return True)]) (WorldContext rc (structureTeams allteams))
+  runReaderT (genLoop buttons [(browseLabel, browseTeams allteams), (quitLabel, \_ -> return True)]) (WorldContext rc allteams)
 
