@@ -8,6 +8,8 @@ import System.IO (hPutStrLn, stderr)
 import System.IO.Error hiding (catch)
 import Control.Exception
 import Prelude hiding (catch)
+import Data.Ord
+import Data.Function
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -15,6 +17,7 @@ import Graphics.Rendering.FTGL as FTGL
 import Codec.Image.PNG
 
 import SDLUtils
+import Swos
 
 loadTexture :: FilePath -> IO TextureObject
 loadTexture fp = do
@@ -85,13 +88,12 @@ drawBox mat prep ((x', y'), (w', h')) d' stf = preservingMatrix $ do
       translate $ Vector3 (w / 2 - realToFrac textlen / 2) 0 (0 :: GLfloat)
       renderFont f str FTGL.Front
 
-drawScene :: Font -> TextureObject -> IO ()
-drawScene f tex = do
+drawGenScene :: Font -> TextureObject -> [Button] -> IO ()
+drawGenScene f tex btns = do
   clear [ColorBuffer, DepthBuffer]
   (w, h) <- getWindowSize
-
   drawBox (Right tex) (color $ Color3 0.4 0.4 (0.4 :: GLfloat)) ((0, 0), (w, h)) (-1) Nothing
-  mapM_ (drawButton f) buttons
+  mapM_ (drawButton f) btns
   glSwapBuffers
 
 type Material = Either SColor TextureObject
@@ -101,45 +103,66 @@ data Button = Button { buttonMaterial :: Material
                      , buttonLabel    :: String
                      }
 
-button1, button2 :: Button
-button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel
-button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel
-
-browseLabel, quitLabel :: String
-browseLabel = "Browse"
-quitLabel = "Quit"
-
-buttons :: [Button]
-buttons = [button1, button2]
-
 drawButton :: Font -> Button -> IO ()
 drawButton f b = drawBox (buttonMaterial b) (return ()) (buttonBox b) 0 (Just (buttonLabel b, f))
 
 browseTeams :: IO ()
-browseTeams = return ()
+browseTeams = do
+  allteams <- loadTeamsFromDirectory "teams"
+  let nations = arrangeTeams allteams
+  print $ length allteams
+  print $ length nations
+  mapM_ putStrLn (map teamname allteams)
 
-checkButtonClicks :: [SDL.Event] -> IO Bool
-checkButtonClicks evts = do
-  btnsclicked <- mouseClickInAnyM [ButtonLeft] (map buttonBox buttons) evts
+data Nation = Nation {
+    natnumber :: Int
+  , divisions :: [Division]
+  }
+
+data Division = Division {
+    divnumber :: Int
+  , divnation :: Int
+  , divteams :: [SWOSTeam]
+  }
+
+splitToNations :: [Division] -> [[Division]]
+splitToNations ts = groupBy ((==) `on` divnation) (sortBy (comparing divnation) ts)
+
+splitToDivisions :: [SWOSTeam] -> [[SWOSTeam]]
+splitToDivisions ts = groupBy ((==) `on` teamdivision) (sortBy (comparing teamdivision) ts)
+
+arrangeTeams :: [SWOSTeam] -> [Nation]
+arrangeTeams ts = map mkNation (splitToNations (map mkDivision (splitToDivisions ts)))
+
+mkDivision :: [SWOSTeam] -> Division
+mkDivision ts = Division (teamdivision (head ts)) (teamnation (head ts)) ts
+
+mkNation :: [Division] -> Nation
+mkNation ds = Nation (teamnation $ head $ divteams $ head ds) ds
+
+checkGenButtonClicks :: [(String, IO Bool)] -> [Button] -> [SDL.Event] -> IO Bool
+checkGenButtonClicks btnhandlers btns evts = do
+  btnsclicked <- mouseClickInAnyM [ButtonLeft] (map buttonBox btns) evts
   let mlbl = liftM buttonLabel $ 
                btnsclicked >>= \b ->
-               find (\bt -> b == buttonBox bt) buttons
+               find (\bt -> b == buttonBox bt) btns
   case mlbl of
     Nothing  -> return False
     Just lbl -> do
-      putStrLn lbl
-      when (lbl == "Browse") browseTeams
-      return (lbl == quitLabel)
+      let mact = lookup lbl btnhandlers
+      case mact of
+        Nothing  -> return False
+        Just act -> act
 
-loop :: Font -> TextureObject -> IO ()
-loop f tex = do
-  drawScene f tex
+genLoop :: Font -> TextureObject -> [Button] -> [(String, IO Bool)] -> IO ()
+genLoop f tex btns btnhandlers = do
+  drawGenScene f tex btns
   evts <- pollAllSDLEvents
-  qbtpressed <- checkButtonClicks evts
+  back <- checkGenButtonClicks btnhandlers btns evts
   let escpressed = isJust $ specificKeyPressed [SDLK_ESCAPE] evts
-  if qbtpressed || escpressed
+  if back || escpressed
     then return ()
-    else loop f tex
+    else genLoop f tex btns btnhandlers
 
 type Camera = ((Int, Int), (Int, Int))
 
@@ -180,5 +203,10 @@ run = do
   texture Texture2D $= Enabled
   tex <- loadTexture "bg.png"
   f <- loadDataFont "DejaVuSans.ttf"
-  loop f tex
+  let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel
+      button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel
+      browseLabel = "Browse"
+      quitLabel = "Quit"
+      buttons = [button1, button2]
+  genLoop f tex buttons [(browseLabel, browseTeams >> return False), (quitLabel, return True)]
 
