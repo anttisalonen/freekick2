@@ -135,7 +135,7 @@ structureTeams ts = f "World" ts (teamnation, nationToString) `g` (teamdivision,
           go tr
             where go (Node i ts')    = Node i (map go ts')
                   go (Leaf (i, ts')) = f i ts' (func, nfunc)
-        nationToString   = showNation . teamnation
+        nationToString   = showTeamNation . teamnation
         divisionToString = showDivision . teamdivision
 
 getFontAndTexture :: MenuBlock (Font, TextureObject)
@@ -169,14 +169,18 @@ browseTeams toplevel _ = do
   (w, h) <- liftIO $ getWindowSize
   let quitlabel = "Quit"
       quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel (\_ -> return True)
-      teambuttons = map (\(n, t) -> Button (Left SOrange) ((20 + 250 * (n `mod` 3), h - 100 - (n `div` 3) * 40), (240, 30)) t (lhandler t)) (zip [0..] labels)
+      teambuttons = map 
+        (\(n, t) -> 
+           Button (Left SOrange) 
+                  ((20 + 250 * (n `mod` 3), h - 100 - (n `div` 3) * 40), (240, 30)) 
+                  t lhandler) 
+        (zip [0..] labels)
       titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title (\_ -> return False)
       allbuttons = quitbutton : titlebutton : teambuttons
-      qhandler _ = return True
-      lhandler lbl _ = case getTSChildrenByTitle toplevel lbl of
-                         Nothing        -> return False
-                         Just (Left t)  -> browseTeams t (getTSLabel t)
-                         Just (Right t) -> liftIO (putStrLn $ "chose team: " ++ (teamname t)) >> return False
+      lhandler lbl = case getTSChildrenByTitle toplevel lbl of
+                       Nothing        -> return False
+                       Just (Left t)  -> browseTeams t (getTSLabel t)
+                       Just (Right t) -> liftIO (putStrLn $ "chose team: " ++ (teamname t)) >> return False
   genLoop allbuttons
   return False
 
