@@ -10,6 +10,7 @@ import Control.Exception
 import Prelude hiding (catch)
 import Data.Ord
 import Data.Function
+import Control.Monad.Reader
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -106,19 +107,31 @@ data Button = Button { buttonMaterial :: Material
 drawButton :: Font -> Button -> IO ()
 drawButton f b = drawBox (buttonMaterial b) (return ()) (buttonBox b) 0 (Just (buttonLabel b, f))
 
-browseTeams :: String -> Font -> TextureObject -> IO Bool
-browseTeams _ f tex = do
-  allteams <- loadTeamsFromDirectory "teams"
+data RenderContext = RenderContext {
+    renderfont :: Font
+  , bgtexture  :: TextureObject
+  }
+
+type Renderer = ReaderT RenderContext IO
+
+getFontAndTexture :: Renderer (Font, TextureObject)
+getFontAndTexture = do
+  c <- ask
+  return (renderfont c, bgtexture c)
+
+browseTeams :: ButtonHandler
+browseTeams _ = do
+  allteams <- liftIO $ loadTeamsFromDirectory "teams"
   let nations = arrangeTeams allteams
-  print $ length allteams
-  print $ length nations
-  (_, h) <- getWindowSize
+  liftIO $ print $ length allteams
+  liftIO $ print $ length nations
+  (_, h) <- liftIO $ getWindowSize
   let quitlabel = "Quit"
       quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel
       teambuttons = map (\(n, t) -> Button (Left SOrange) ((20 + 250 * (n `mod` 3), h - (n `div` 3) * 40), (240, 30)) (teamname t)) (zip [1..] allteams)
       allbuttons = quitbutton : teambuttons
-      qhandler = \_ _ _ -> return True
-  genLoop f tex allbuttons [(quitlabel, qhandler)]
+      qhandler = \_ -> return True
+  genLoop allbuttons [(quitlabel, qhandler)]
   return False
 
 data Nation = Nation {
@@ -150,9 +163,9 @@ mkDivision ts = Division (teamdivision (head ts)) (teamnation (head ts)) ts
 mkNation :: [Division] -> Nation
 mkNation ds = Nation (teamnation $ head $ divteams $ head ds) ds
 
-checkGenButtonClicks :: [(String, String -> Font -> TextureObject -> IO Bool)] -> [Button] -> [SDL.Event] -> Font -> TextureObject -> IO Bool
-checkGenButtonClicks btnhandlers btns evts f tex = do
-  btnsclicked <- mouseClickInAnyM [ButtonLeft] (map buttonBox btns) evts
+checkGenButtonClicks :: [(String, ButtonHandler)] -> [Button] -> [SDL.Event] -> Renderer Bool
+checkGenButtonClicks btnhandlers btns evts = do
+  btnsclicked <- liftIO $ mouseClickInAnyM [ButtonLeft] (map buttonBox btns) evts
   let mlbl = liftM buttonLabel $ 
                btnsclicked >>= \b ->
                find (\bt -> b == buttonBox bt) btns
@@ -162,17 +175,22 @@ checkGenButtonClicks btnhandlers btns evts f tex = do
       let mact = lookup lbl btnhandlers
       case mact of
         Nothing  -> return False
-        Just act -> act lbl f tex
+        Just act -> act lbl 
 
-genLoop :: Font -> TextureObject -> [Button] -> [(String, String -> Font -> TextureObject -> IO Bool)] -> IO ()
-genLoop f tex btns btnhandlers = do
-  drawGenScene f tex btns
-  evts <- pollAllSDLEvents
-  back <- checkGenButtonClicks btnhandlers btns evts f tex
+type ButtonHandler = String -> Renderer Bool
+
+genLoop :: [Button] -> [(String, ButtonHandler)] -> Renderer ()
+genLoop btns btnhandlers = do
+  c <- ask
+  let f = renderfont c
+      tex = bgtexture c
+  liftIO $ drawGenScene f tex btns
+  evts <- liftIO $ pollAllSDLEvents
+  back <- checkGenButtonClicks btnhandlers btns evts
   let escpressed = isJust $ specificKeyPressed [SDLK_ESCAPE] evts
   if back || escpressed
     then return ()
-    else genLoop f tex btns btnhandlers
+    else genLoop btns btnhandlers
 
 type Camera = ((Int, Int), (Int, Int))
 
@@ -218,5 +236,5 @@ run = do
       browseLabel = "Browse"
       quitLabel = "Quit"
       buttons = [button1, button2]
-  genLoop f tex buttons [(browseLabel, browseTeams), (quitLabel, \_ _ _ -> return True)]
+  runReaderT (genLoop buttons [(browseLabel, browseTeams), (quitLabel, \_ -> return True)]) (RenderContext f tex) 
 
