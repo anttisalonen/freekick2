@@ -142,20 +142,29 @@ getFontAndTexture = do
   c <- rendercontext <$> ask
   return (renderfont c, bgtexture c)
 
-getTeamStructureLabel :: TeamStructure -> String
-getTeamStructureLabel (Node i _)    = i
-getTeamStructureLabel (Leaf (i, _)) = i
+getTSLabel :: TeamStructure -> String
+getTSLabel (Node i _)    = i
+getTSLabel (Leaf (i, _)) = i
 
-getTeamStructureChildren :: TeamStructure -> [String]
-getTeamStructureChildren (Node _ ts)    = map getTeamStructureLabel ts
-getTeamStructureChildren (Leaf (_, ts)) = map teamname ts
+getTSChildrenTitles :: TeamStructure -> [String]
+getTSChildrenTitles = (either (map getTSLabel) (map teamname)) . getTSChildren
 
-getTeamMenuData :: TeamStructure -> (String, [String])
-getTeamMenuData t = (getTeamStructureLabel t, getTeamStructureChildren t)
+getTSTitles :: TeamStructure -> (String, [String])
+getTSTitles t = (getTSLabel t, getTSChildrenTitles t)
+
+getTSChildren :: TeamStructure -> Either [TeamStructure] [SWOSTeam]
+getTSChildren (Node _ ts)    = Left ts
+getTSChildren (Leaf (_, ts)) = Right ts
+
+getTSChildrenByTitle :: TeamStructure -> String -> Maybe (Either TeamStructure SWOSTeam)
+getTSChildrenByTitle ts n =
+  case getTSChildren ts of
+    Left ts'  -> liftM Left  $ find (\t -> getTSLabel t == n) ts'
+    Right tms -> liftM Right $ find (\t -> teamname t == n) tms
 
 browseTeams :: TeamStructure -> ButtonHandler
 browseTeams toplevel _ = do
-  let (title, labels) = getTeamMenuData toplevel
+  let (title, labels) = getTSTitles toplevel
   (w, h) <- liftIO $ getWindowSize
   let quitlabel = "Quit"
       quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel
@@ -163,7 +172,11 @@ browseTeams toplevel _ = do
       titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title
       allbuttons = quitbutton : titlebutton : teambuttons
       qhandler = \_ -> return True
-  genLoop allbuttons [(quitlabel, qhandler)]
+      lhandler lbl _ = case getTSChildrenByTitle toplevel lbl of
+                         Nothing        -> return False
+                         Just (Left t)  -> browseTeams t (getTSLabel t)
+                         Just (Right t) -> liftIO (putStrLn $ "chose team: " ++ (teamname t)) >> return False
+  genLoop allbuttons ((quitlabel, qhandler) : (zip labels (map lhandler labels)))
   return False
 
 splitBy :: (Ord b) => (a -> b) -> [a] -> [[a]]
