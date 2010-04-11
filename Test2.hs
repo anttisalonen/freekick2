@@ -145,17 +145,17 @@ data Continent = NorthAmerica
                | Africa
                | Asia
                | Europe
-               | Antarctica
+               | OtherContinent
   deriving (Ord, Eq)
 
 instance Show Continent where
-  show NorthAmerica = "North America"
-  show SouthAmerica = "South America"
-  show Oceania      = "Oceania"
-  show Africa       = "Africa"
-  show Asia         = "Asia"
-  show Europe       = "Europe"
-  show Antarctica   = "Antarctica"
+  show NorthAmerica   = "North America"
+  show SouthAmerica   = "South America"
+  show Oceania        = "Oceania"
+  show Africa         = "Africa"
+  show Asia           = "Asia"
+  show Europe         = "Europe"
+  show OtherContinent = "Other"
 
 countryContinent :: String -> Continent
 countryContinent "El Salvador" = NorthAmerica
@@ -234,7 +234,7 @@ countryContinent "Macedonia" = Europe
 countryContinent "Azerbaijan" = Europe
 countryContinent "Armenia" = Europe
 countryContinent "Georgia" = Europe
-countryContinent _ = Antarctica
+countryContinent _ = OtherContinent
 
 getFontAndTexture :: MenuBlock (Font, TextureObject)
 getFontAndTexture = do
