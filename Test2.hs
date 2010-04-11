@@ -91,7 +91,7 @@ drawBox mat prep ((x', y'), (w', h')) d' stf = preservingMatrix $ do
       translate $ Vector3 (w / 2 - realToFrac textlen / 2) 0 (0 :: GLfloat)
       renderFont f str FTGL.Front
 
-drawGenScene :: Font -> TextureObject -> [Button] -> IO ()
+drawGenScene :: Font -> TextureObject -> [Button a] -> IO ()
 drawGenScene f tex btns = do
   clear [ColorBuffer, DepthBuffer]
   (w, h) <- getWindowSize
@@ -101,12 +101,13 @@ drawGenScene f tex btns = do
 
 type Material = Either SColor TextureObject
 
-data Button = Button { buttonMaterial :: Material
-                     , buttonBox      :: Camera
-                     , buttonLabel    :: String
-                     }
+data Button a = Button { buttonMaterial :: Material
+                       , buttonBox      :: Camera
+                       , buttonLabel    :: String
+                       , buttonAction   :: String -> a
+                       }
 
-drawButton :: Font -> Button -> IO ()
+drawButton :: Font -> Button a -> IO ()
 drawButton f b = drawBox (buttonMaterial b) (return ()) (buttonBox b) 0 (Just (buttonLabel b, f))
 
 data RenderContext = RenderContext {
@@ -134,8 +135,8 @@ structureTeams ts = f "World" ts (teamnation, nationToString) `g` (teamdivision,
           go tr
             where go (Node i ts')    = Node i (map go ts')
                   go (Leaf (i, ts')) = f i ts' (func, nfunc)
-        nationToString   = show . teamnation
-        divisionToString = show . teamdivision
+        nationToString   = showNation . teamnation
+        divisionToString = showDivision . teamdivision
 
 getFontAndTexture :: MenuBlock (Font, TextureObject)
 getFontAndTexture = do
@@ -167,23 +168,23 @@ browseTeams toplevel _ = do
   let (title, labels) = getTSTitles toplevel
   (w, h) <- liftIO $ getWindowSize
   let quitlabel = "Quit"
-      quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel
-      teambuttons = map (\(n, t) -> Button (Left SOrange) ((20 + 250 * (n `mod` 3), h - 100 - (n `div` 3) * 40), (240, 30)) t) (zip [0..] labels)
-      titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title
+      quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel (\_ -> return True)
+      teambuttons = map (\(n, t) -> Button (Left SOrange) ((20 + 250 * (n `mod` 3), h - 100 - (n `div` 3) * 40), (240, 30)) t (lhandler t)) (zip [0..] labels)
+      titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title (\_ -> return False)
       allbuttons = quitbutton : titlebutton : teambuttons
-      qhandler = \_ -> return True
+      qhandler _ = return True
       lhandler lbl _ = case getTSChildrenByTitle toplevel lbl of
                          Nothing        -> return False
                          Just (Left t)  -> browseTeams t (getTSLabel t)
                          Just (Right t) -> liftIO (putStrLn $ "chose team: " ++ (teamname t)) >> return False
-  genLoop allbuttons ((quitlabel, qhandler) : (zip labels (map lhandler labels)))
+  genLoop allbuttons
   return False
 
 splitBy :: (Ord b) => (a -> b) -> [a] -> [[a]]
 splitBy f = groupBy ((==) `on` f) . sortBy (comparing f)
 
-checkGenButtonClicks :: [(String, ButtonHandler)] -> [Button] -> [SDL.Event] -> MenuBlock Bool
-checkGenButtonClicks btnhandlers btns evts = do
+checkGenButtonClicks :: (MonadIO m) => [Button (m Bool)] -> [SDL.Event] -> m Bool
+checkGenButtonClicks btns evts = do
   btnsclicked <- liftIO $ mouseClickInAnyM [ButtonLeft] (map buttonBox btns) evts
   let mlbl = liftM buttonLabel $ 
                btnsclicked >>= \b ->
@@ -191,23 +192,23 @@ checkGenButtonClicks btnhandlers btns evts = do
   case mlbl of
     Nothing  -> return False
     Just lbl -> do
-      let mact = lookup lbl btnhandlers
-      case mact of
-        Nothing  -> return False
-        Just act -> act lbl 
+      let mbt = find (\b -> buttonLabel b == lbl) btns
+      case mbt of
+        Nothing -> return False
+        Just bt -> (buttonAction bt) lbl
 
 type ButtonHandler = String -> MenuBlock Bool
 
-genLoop :: [Button] -> [(String, ButtonHandler)] -> MenuBlock ()
-genLoop btns btnhandlers = do
+genLoop :: [Button (MenuBlock Bool)] -> MenuBlock ()
+genLoop btns = do
   (f, tex) <- getFontAndTexture
   liftIO $ drawGenScene f tex btns
   evts <- liftIO $ pollAllSDLEvents
-  back <- checkGenButtonClicks btnhandlers btns evts
+  back <- checkGenButtonClicks btns evts
   let escpressed = isJust $ specificKeyPressed [SDLK_ESCAPE] evts
   if back || escpressed
     then return ()
-    else genLoop btns btnhandlers
+    else genLoop btns
 
 type Camera = ((Int, Int), (Int, Int))
 
@@ -249,11 +250,11 @@ run = do
   tex <- loadTexture "bg.png"
   f <- loadDataFont "DejaVuSans.ttf"
   allteams <- structureTeams `fmap` loadTeamsFromDirectory "teams"
-  let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel
-      button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel
+  let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel (\_ -> return True)
+      button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel (browseTeams allteams)
       browseLabel = "Browse"
       quitLabel = "Quit"
       buttons = [button1, button2]
       rc = RenderContext f tex
-  runReaderT (genLoop buttons [(browseLabel, browseTeams allteams), (quitLabel, \_ -> return True)]) (WorldContext rc allteams)
+  runReaderT (genLoop buttons) (WorldContext rc allteams)
 
