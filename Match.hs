@@ -78,6 +78,7 @@ drawTiling tex prep c d' (s', t') = preservingMatrix $ do
     vertex $ Vertex3 w h (0 :: GLfloat)
     texCoord (TexCoord2 0       (0 :: GLfloat))
     vertex $ Vertex3 0 h 0
+  textureBinding Texture2D $= Nothing
 
 drawBox :: Either SColor TextureObject -> IO () -> ((Int, Int), (Int, Int)) -> Int -> Maybe (String, Font) -> IO ()
 drawBox mat prep c d' stf = preservingMatrix $ do
@@ -212,13 +213,42 @@ handleKeyEvents = do
   when (SDLK_RIGHT `elem` ks) $ modify $ modCampos (goRight 1)
   return (SDLK_ESCAPE `elem` ks)
 
+drawRect :: Rectangle -> Float -> IO ()
+drawRect r d' = preservingMatrix $ do
+  let ((a, b), (c, d)) = rectToNum r
+      e                = realToFrac d'
+  loadIdentity
+  translate $ Vector3 a b e
+  renderPrimitive Quads $ do
+    vertex $ Vertex3 0 0 (0 :: GLfloat)
+    vertex $ Vertex3 c 0 (0 :: GLfloat)
+    vertex $ Vertex3 c d 0
+    vertex $ Vertex3 0 d 0
+
+lw :: Float -- linewidth
+lw = 0.15
+
+drawPitch :: GrassTexture -> FRange -> IO ()
+drawPitch grtexture psize@(px, py) = do
+  drawTiling (grasstexobj grtexture) (return ()) ((0, 0), psize) (-1) (grasstiling grtexture)
+  color $ Color3 0.8 0.8 (0.8 :: GLfloat)
+  drawRect ((0, 0), (px, lw)) 0
+  drawRect ((0, 0), (lw, py)) 0
+  drawRect ((0, py - lw), (px, lw)) 0
+  drawRect ((px - lw, 0), (lw, py)) 0
+  drawRect ((0, (py - lw) / 2), (px, lw)) 0
+  preservingMatrix $ do
+    translate $ Vector3 (realToFrac px / 2) (realToFrac py / 2) (0 :: GLfloat)
+    renderQuadric (QuadricStyle Nothing NoTextureCoordinates Inside FillStyle) (Disk (9.15) (9.15 + realToFrac lw) 64 1)
+    renderQuadric (QuadricStyle Nothing NoTextureCoordinates Inside FillStyle) (Disk 0 (realToFrac (lw * 2)) 32 1)
+
 runMatch :: Match ()
 runMatch = do
   liftIO $ clear [ColorBuffer, DepthBuffer]
   s <- State.get
   (w, h) <- liftIO $ getWindowSize
   liftIO $ setCamera' (campos s, (fromIntegral (w `div` 20), fromIntegral (h `div` 20)))
-  liftIO $ drawTiling (grasstexobj (grasstexture s)) (return ()) ((0, 0), pitchsize s) (-1) (grasstiling (grasstexture s))
+  liftIO $ drawPitch (grasstexture s) (pitchsize s)
   liftIO $ glSwapBuffers
   liftIO $ SDL.delay 10
   quitting <- handleKeyEvents
