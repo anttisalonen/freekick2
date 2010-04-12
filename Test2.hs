@@ -17,6 +17,7 @@ import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
 import Graphics.Rendering.FTGL as FTGL
 import Codec.Image.PNG
+import Control.Monad.Maybe
 
 import SDLUtils
 import Swos
@@ -303,7 +304,6 @@ getOwner t c =
 clickedOnTeam :: SWOSTeam -> MenuBlock ()
 clickedOnTeam t = do
   c <- State.get
-  liftIO . putStrLn $ "chose team: " ++ (teamname t)
   if hasJust (teamname t) (liftM (teamname . fst) (hometeam c))
     then modify $ modHometeam $ rotateTeam t
     else if hasJust (teamname t) (liftM (teamname . fst) (awayteam c))
@@ -330,8 +330,42 @@ browserButtonHandler toplevel lbl =
     Just (Left t)  -> browseTeams t (getTSLabel t)
     Just (Right t) -> clickedOnTeam t >> return False
 
+playMatch :: MenuBlock ()
+playMatch = return ()
+
 continueToMatch :: MenuBlock ()
-continueToMatch = return ()
+continueToMatch = do
+  c <- State.get
+  (f1, f2) <- getTwoFonts
+  (w, h) <- liftIO $ getWindowSize
+  case hometeam c of
+    Nothing       -> return ()
+    Just (ht, ho) -> do
+      case awayteam c of
+        Nothing       -> return ()
+        Just (at, ao) -> do
+          let quitlabel = "Back"
+              title = "Match"
+              quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel f1 (\_ -> return True)
+              team1buttons = map 
+                (\(n, t) -> 
+                   Button (Left SOrange)
+                          ((20, h - 100 - n * 25), (240, 20)) 
+                          t f2 (\_ -> return False))
+                (zip [0..] t1labels)
+              t1labels = map plname (teamplayers ht)
+              team2buttons = map 
+                (\(n, t) -> 
+                   Button (Left SOrange)
+                          ((520, h - 100 - n * 25), (240, 20)) 
+                          t f2 (\_ -> return False))
+                (zip [0..] t2labels)
+              t2labels = map plname (teamplayers at)
+              titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title f1 (\_ -> return False)
+              contlabel = "Play"
+              contbutton = Button (Left SOrange) ((w - 210, 10), (200, 30)) contlabel f1 (\_ -> playMatch >> return False)
+              allbuttons = contbutton : quitbutton : titlebutton : team1buttons ++ team2buttons
+          genLoop allbuttons
 
 ownerToColor :: String -> WorldContext -> SColor
 ownerToColor t c = 
@@ -346,7 +380,7 @@ browseTeams' toplevel = do
   c <- State.get
   (f1, f2) <- getTwoFonts
   (w, h) <- liftIO $ getWindowSize
-  let quitlabel = "Quit"
+  let quitlabel = "Back"
       quitbutton = Button (Left SOrange) ((10, 10), (200, 30)) quitlabel f1 (\_ -> return True)
       teambuttons = map 
         (\(n, t) -> 
