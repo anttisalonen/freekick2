@@ -56,6 +56,9 @@ getSpecificSDLChars cs = do
 keyDowns :: [SDL.Event] -> [SDLKey]
 keyDowns = foldl' (\acc e -> case e of KeyDown (Keysym n _ _) -> (n:acc); _ -> acc) []
 
+keyUps :: [SDL.Event] -> [SDLKey]
+keyUps = foldl' (\acc e -> case e of KeyUp (Keysym n _ _) -> (n:acc); _ -> acc) []
+
 specificKeyPressed :: [SDLKey] -> [SDL.Event] -> Maybe SDLKey
 specificKeyPressed ks evts = listToMaybe $ intersect ks (keyDowns evts)
 
