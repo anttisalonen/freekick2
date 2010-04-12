@@ -17,11 +17,11 @@ import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
 import Graphics.Rendering.FTGL as FTGL
 import Codec.Image.PNG
-import Control.Monad.Maybe
 
 import SDLUtils
 import Swos
 import Tree
+import Match
 
 loadTexture :: FilePath -> IO TextureObject
 loadTexture fp = do
@@ -115,28 +115,11 @@ data Button a = Button { buttonMaterial :: Material
 drawButton :: Button a -> IO ()
 drawButton b = drawBox (buttonMaterial b) (return ()) (buttonBox b) 0 (Just (buttonLabel b, buttonFont b))
 
-data RenderContext = RenderContext {
-    renderfont  :: Font
-  , smallerfont :: Font
-  , bgtexture   :: TextureObject
-  }
-
-data WorldContext = WorldContext {
-    rendercontext :: RenderContext
-  , worldteams    :: TeamStructure
-  , hometeam      :: Maybe (SWOSTeam, TeamOwner)
-  , awayteam      :: Maybe (SWOSTeam, TeamOwner)
-  }
-
-data TeamOwner = HumanOwner | AIOwner
-
 modHometeam :: (Maybe (SWOSTeam, TeamOwner) -> Maybe (SWOSTeam, TeamOwner)) -> WorldContext -> WorldContext
 modHometeam f c = c{hometeam = f (hometeam c)}
 
 modAwayteam :: (Maybe (SWOSTeam, TeamOwner) -> Maybe (SWOSTeam, TeamOwner)) -> WorldContext -> WorldContext
 modAwayteam f c = c{awayteam = f (awayteam c)}
-
-type TeamStructure = Tree String (String, [SWOSTeam])
 
 type MenuBlock = StateT WorldContext IO
 
@@ -330,9 +313,6 @@ browserButtonHandler toplevel lbl =
     Just (Left t)  -> browseTeams t (getTSLabel t)
     Just (Right t) -> clickedOnTeam t >> return False
 
-playMatch :: MenuBlock ()
-playMatch = return ()
-
 continueToMatch :: MenuBlock ()
 continueToMatch = do
   c <- State.get
@@ -363,7 +343,7 @@ continueToMatch = do
               t2labels = map plname (teamplayers at)
               titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title f1 (\_ -> return False)
               contlabel = "Play"
-              contbutton = Button (Left SOrange) ((w - 210, 10), (200, 30)) contlabel f1 (\_ -> playMatch >> return False)
+              contbutton = Button (Left SOrange) ((w - 210, 10), (200, 30)) contlabel f1 (\_ -> liftIO (playMatch f2 (ht, ho) (at, ao)) >> return False)
               allbuttons = contbutton : quitbutton : titlebutton : team1buttons ++ team2buttons
           genLoop allbuttons
 
