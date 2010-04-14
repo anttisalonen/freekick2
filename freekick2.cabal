@@ -20,6 +20,7 @@ extra-source-files: src/Match.hs,
                     src/Swos.hs, 
                     src/SDLUtils.hs, 
                     src/Drawing.hs, 
+                    src/DrawPitch.hs, 
                     src/Tree.hs
 
 source-repository head

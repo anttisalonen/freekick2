@@ -13,6 +13,8 @@ import Foreign.Ptr
 import Graphics.Rendering.OpenGL as OpenGL
 import Codec.Image.PNG
 
+type FRange = (Float, Float)
+
 type Rectangle = ((Float, Float), (Float, Float))
 
 type Camera = ((Int, Int), (Int, Int))
