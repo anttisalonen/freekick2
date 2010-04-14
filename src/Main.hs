@@ -288,7 +288,12 @@ continueToMatch = do
               t2labels = map plname (teamplayers at)
               titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title f1 (\_ -> return False)
               contlabel = "Play"
-              contbutton = Button (Left SOrange) ((w - 210, 10), (200, 30)) contlabel f1 (\_ -> liftIO (playMatch f2 (ht, ho) (at, ao)) >> return False)
+              contbutton = Button (Left SOrange) 
+                                  ((w - 210, 10), (200, 30)) 
+                                  contlabel f1 
+                                  (\_ -> liftIO (loadDataTexture "share/grass1.png" Nothing Nothing) >>= \ptex ->
+                                         liftIO (playMatch ptex f2 (ht, ho) (at, ao)) >> 
+                                         return False)
               allbuttons = contbutton : quitbutton : titlebutton : team1buttons ++ team2buttons
           genLoop allbuttons
 
@@ -362,14 +367,20 @@ main :: IO ()
 main = catch run (\e -> hPutStrLn stderr $ "Exception: " ++ show (e :: IOException))
 
 loadDataFont :: Int -> Int -> FilePath -> IO Font
-loadDataFont sz pt fp = do
+loadDataFont sz pt fp = 
+  let act = (\fn -> createTextureFont fn >>= \f -> setFontFaceSize f sz pt >> return f)
+  in loadDataResource fp act
+
+loadDataResource :: FilePath -> (FilePath -> IO a) -> IO a
+loadDataResource fp act = do
   fn <- getDataFileName fp
   exists <- doesFileExist fn
   when (not exists) $ do
-    throwIO $ mkIOError doesNotExistErrorType "loading data font during initialization" Nothing (Just fn)
-  f <- createTextureFont fn
-  _ <- setFontFaceSize f sz pt
-  return f
+    throwIO $ mkIOError doesNotExistErrorType "loading data resource" Nothing (Just fn)
+  act fn
+
+loadDataTexture :: FilePath -> Maybe Int -> Maybe Int -> IO TextureObject
+loadDataTexture fp mn mx = loadDataResource fp (loadTexture mn mx)
 
 run :: IO ()
 run = do
@@ -385,9 +396,9 @@ run = do
   setCamera ((0, 0), (width, height))
   matrixMode $= Modelview 0
   texture Texture2D $= Enabled
-  tex <- loadTexture Nothing Nothing "bg.png"
-  f <- loadDataFont 24 48 "DejaVuSans.ttf"
-  f2 <- loadDataFont 16 48 "DejaVuSans.ttf"
+  tex <- loadDataTexture "share/bg.png" Nothing Nothing 
+  f <- loadDataFont 24 48 "share/DejaVuSans.ttf"
+  f2 <- loadDataFont 16 48 "share/DejaVuSans.ttf"
   allteams <- structureTeams `fmap` loadTeamsFromDirectory "teams"
   let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel f (\_ -> return True)
       button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel f (browseTeams allteams)

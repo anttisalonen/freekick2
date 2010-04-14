@@ -35,9 +35,8 @@ $(deriveMods ''MatchState)
 
 type Match = StateT MatchState IO
 
-playMatch :: Font -> (Swos.SWOSTeam, TeamOwner) -> (Swos.SWOSTeam, TeamOwner) -> IO ()
-playMatch _ _ _ = do
-  tex <- loadTexture Nothing Nothing "grass1.png"
+playMatch :: TextureObject -> Font -> (Swos.SWOSTeam, TeamOwner) -> (Swos.SWOSTeam, TeamOwner) -> IO ()
+playMatch tex _ _ _ = do
   evalStateT runMatch (initMatchState tex (16, 16) (68, 105) (20, 40))
   putStrLn "Match played! Yay!"
   (w, h) <- liftIO $ getWindowSize
