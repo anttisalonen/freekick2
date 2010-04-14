@@ -13,6 +13,11 @@ import Graphics.Rendering.FTGL as FTGL
 import Graphics.Rendering.OpenGL as OpenGL
 import Codec.Image.PNG
 
+data ImageInfo = ImageInfo {
+    imgtexture :: TextureObject
+  , imgsize    :: (Int, Int)
+  }
+
 type FRange = (Float, Float)
 
 type Rectangle = ((Float, Float), (Float, Float))
@@ -60,7 +65,7 @@ drawTiling tex prep c d' (s', t') = preservingMatrix $ do
   textureBinding Texture2D $= Nothing
 
 loadTexture :: Maybe Int -> Maybe Int -> FilePath -> IO TextureObject
-loadTexture mcuttop mcutbottom fp = do
+loadTexture mcuttop mtaketop fp = do
   eimg <- loadPNGFile fp
   case eimg of
     Left err  -> throwIO $ mkIOError doesNotExistErrorType ("could not load texture: " ++ err) Nothing (Just fp)
@@ -78,7 +83,7 @@ loadTexture mcuttop mcutbottom fp = do
                          Just cuttop -> 
                            let numbytes = if isAlpha then 4 else 3
                            in plusPtr imgdata (fromIntegral imgw * cuttop * numbytes)
-        let totheight = (fromMaybe (fromIntegral imgh) mcutbottom) - (fromMaybe 0 mcuttop)
+        let totheight = (fromMaybe (fromIntegral imgh) mtaketop) - (fromMaybe 0 mcuttop)
         texImage2D Nothing NoProxy 0 intform
           (TextureSize2D (fromIntegral imgw) (fromIntegral totheight)) 0 
           (PixelData pformat UnsignedByte movedimg)
