@@ -14,7 +14,7 @@ import Control.Monad.State as State
 import Control.Applicative
 
 import Graphics.Rendering.OpenGL as OpenGL
-import Graphics.UI.SDL as SDL
+import Graphics.UI.SDL as SDL hiding (SrcAlpha)
 import Graphics.Rendering.FTGL as FTGL
 
 import SDLUtils
@@ -388,7 +388,9 @@ run = do
       width = 800
       height = 600
   _ <- setVideoMode width height 0 [OpenGL]
-  depthFunc $= Just Less
+  depthFunc $= Nothing
+  blend $= Enabled
+  blendFunc $= (SrcAlpha, OneMinusSrcAlpha)
   clearColor $= Color4 0 0 0 1
   viewport $= (Position 0 0, Size width height)
   matrixMode $= Projection
