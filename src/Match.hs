@@ -131,7 +131,6 @@ drawPitch grtexture psize@(px, py) = do
   drawRectBox ((px / 2 - 20.16, 0), (40.32, 16.5)) lw 0 -- penalty area 1
   drawRectBox ((px / 2 - 9.15,  0), (18.3,  5.5))  lw 0 -- goal area 1
   drawSpot (px / 2, 11) (lw * 2) 0 -- penalty spot 1
-  -- draw2DArcAngled (px / 2, 11) 9.15 lw 0 (-33.367012, 66.7340259) -- penalty arc 1
   draw2DArcAngled (px / 2, 11.1) 9.15 lw 0 (-54.63298, 109.26596) -- penalty arc 1
   drawRectBox ((px / 2 - 20.16, py), (40.32, -16.5)) lw 0 -- penalty area 2
   drawRectBox ((px / 2 - 9.15,  py), (18.3,  -5.5))  lw 0 -- goal area 2
@@ -141,14 +140,6 @@ drawPitch grtexture psize@(px, py) = do
   draw2DArcAngled (px, 0) 1 lw 0 (0, -90) -- corner line 2
   draw2DArcAngled (0, py) 1 lw 0 (90, 90) -- corner line 3
   draw2DArcAngled (px, py) 1 lw 0 (-90, -90) -- corner line 4
-  draw2DArcAngled (0, 0) 5 lw 0 (0, 0)
-  draw2DArcAngled (10, 10) 5 lw 0 (0, 30)
-  draw2DArcAngled (20, 20) 5 lw 0 (0, 60)
-  draw2DArcAngled (30, 30) 5 lw 0 (0, 120)
-  draw2DArcAngled (40, 40) 5 lw 0 (45, 30)
-  draw2DArcAngled (50, 50) 5 lw 0 (90, 60)
-  draw2DArcAngled (60, 60) 5 lw 0 (-90, -30)
-  draw2DArcAngled (70, 70) 5 lw 0 (-120, -60)
 
 runMatch :: Match ()
 runMatch = do
