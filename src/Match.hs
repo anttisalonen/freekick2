@@ -1,3 +1,4 @@
+{-# Language TemplateHaskell #-}
 module Match(playMatch, TeamOwner(..))
 where
 
@@ -14,8 +15,14 @@ import qualified Swos
 import SDLUtils
 import Drawing
 import DrawPitch
+import DeriveMod
 
 data TeamOwner = HumanOwner | AIOwner
+
+data Player = Player {
+    plposition :: FRange
+  }
+$(deriveMods ''Player)
 
 data MatchState = MatchState {
     grasstexture :: GrassTexture
@@ -24,25 +31,7 @@ data MatchState = MatchState {
   , campos       :: (Float, Float)
   , player       :: Player
   }
-
-modCurrkeys :: ([SDLKey] -> [SDLKey]) -> MatchState -> MatchState
-modCurrkeys f c = c{currkeys = f (currkeys c)}
-
-modCampos :: (FRange -> FRange) -> MatchState -> MatchState
-modCampos f c = c{campos = f (campos c)}
-
--- smodCampos :: (FRange -> FRange) -> MatchState -> MatchState
-smodCampos f = modify (modCampos f)
-
-modPlayer :: (Player -> Player) -> MatchState -> MatchState
-modPlayer f c = c{player = f (player c)}
-
-data Player = Player {
-    plposition :: FRange
-  }
-
-modPlposition :: (FRange -> FRange) -> Player -> Player
-modPlposition f c = c{plposition = f (plposition c)}
+$(deriveMods ''MatchState)
 
 type Match = StateT MatchState IO
 
@@ -83,16 +72,16 @@ plspeed = 0.2
 handleKeyEvents :: Match Bool
 handleKeyEvents = do
   evts <- liftIO $ pollAllSDLEvents
-  modify $ modCurrkeys $ updateKeyMap (keyChanges evts)
+  sModCurrkeys $ updateKeyMap (keyChanges evts)
   ks <- currkeys <$> State.get
-  when (SDLK_UP `elem` ks) $ modify $ modCampos (goUp 1)
-  when (SDLK_DOWN `elem` ks) $ modify $ modCampos (goUp (-1))
-  when (SDLK_LEFT `elem` ks) $ modify $ modCampos (goRight (-1))
-  when (SDLK_RIGHT `elem` ks) $ modify $ modCampos (goRight 1)
-  when (SDLK_w `elem` ks) $ modify $ modPlayer $ modPlposition (goUp plspeed)
-  when (SDLK_a `elem` ks) $ modify $ modPlayer $ modPlposition (goUp (-plspeed))
-  when (SDLK_s `elem` ks) $ modify $ modPlayer $ modPlposition (goRight (-plspeed))
-  when (SDLK_d `elem` ks) $ modify $ modPlayer $ modPlposition (goRight plspeed)
+  when (SDLK_UP `elem` ks) $ sModCampos (goUp 1)
+  when (SDLK_DOWN `elem` ks) $ sModCampos (goUp (-1))
+  when (SDLK_LEFT `elem` ks) $ sModCampos (goRight (-1))
+  when (SDLK_RIGHT `elem` ks) $ sModCampos (goRight 1)
+  when (SDLK_w `elem` ks) $ sModPlayer $ modPlposition (goUp plspeed)
+  when (SDLK_a `elem` ks) $ sModPlayer $ modPlposition (goUp (-plspeed))
+  when (SDLK_s `elem` ks) $ sModPlayer $ modPlposition (goRight (-plspeed))
+  when (SDLK_d `elem` ks) $ sModPlayer $ modPlposition (goRight plspeed)
   return (SDLK_ESCAPE `elem` ks)
 
 runMatch :: Match ()
