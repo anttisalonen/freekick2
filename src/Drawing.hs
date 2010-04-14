@@ -60,7 +60,7 @@ drawTiling tex prep c d' (s', t') = preservingMatrix $ do
   textureBinding Texture2D $= Nothing
 
 loadTexture :: Maybe Int -> Maybe Int -> FilePath -> IO TextureObject
-loadTexture mlimmin mlimmax fp = do
+loadTexture mcuttop mcutbottom fp = do
   eimg <- loadPNGFile fp
   case eimg of
     Left err  -> throwIO $ mkIOError doesNotExistErrorType ("could not load texture: " ++ err) Nothing (Just fp)
@@ -73,12 +73,12 @@ loadTexture mlimmin mlimmax fp = do
           intform = if isAlpha then RGBA' else RGB'
           pformat = if isAlpha then RGBA  else RGB
       withStorableArray (imageData img) $ \imgdata -> do
-        let movedimg = case mlimmin of
+        let movedimg = case mcuttop of
                          Nothing     -> imgdata
-                         Just limmin -> 
+                         Just cuttop -> 
                            let numbytes = if isAlpha then 4 else 3
-                           in plusPtr imgdata (fromIntegral imgw * limmin * numbytes)
-        let totheight = (fromMaybe (fromIntegral imgh) mlimmax) - (fromMaybe 0 mlimmin)
+                           in plusPtr imgdata (fromIntegral imgw * cuttop * numbytes)
+        let totheight = (fromMaybe (fromIntegral imgh) mcutbottom) - (fromMaybe 0 mcuttop)
         texImage2D Nothing NoProxy 0 intform
           (TextureSize2D (fromIntegral imgw) (fromIntegral totheight)) 0 
           (PixelData pformat UnsignedByte movedimg)
