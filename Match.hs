@@ -9,6 +9,7 @@ import Control.Monad
 import Control.Monad.State as State
 import Data.Maybe
 import Control.Applicative
+import Foreign.Ptr
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -122,8 +123,8 @@ drawBox mat prep c d' stf = preservingMatrix $ do
       translate $ Vector3 (w / 2 - realToFrac textlen / 2) 0 (0 :: GLfloat)
       renderFont f str FTGL.Front
 
-loadTexture :: FilePath -> IO TextureObject
-loadTexture fp = do
+loadTexture :: Maybe Int -> Maybe Int -> FilePath -> IO TextureObject
+loadTexture mlimmin mlimmax fp = do
   eimg <- loadPNGFile fp
   case eimg of
     Left err  -> throwIO $ mkIOError doesNotExistErrorType ("could not load texture: " ++ err) Nothing (Just fp)
@@ -135,10 +136,16 @@ loadTexture fp = do
       let isAlpha = hasAlphaChannel img
           intform = if isAlpha then RGBA' else RGB'
           pformat = if isAlpha then RGBA  else RGB
-      withStorableArray (imageData img) $ \imgdata -> 
+      withStorableArray (imageData img) $ \imgdata -> do
+        let movedimg = case mlimmin of
+                         Nothing     -> imgdata
+                         Just limmin -> 
+                           let numbytes = if isAlpha then 4 else 3
+                           in plusPtr imgdata (fromIntegral imgw * limmin * numbytes)
+        let totheight = (fromMaybe (fromIntegral imgh) mlimmax) - (fromMaybe 0 mlimmin)
         texImage2D Nothing NoProxy 0 intform
-          (TextureSize2D (fromIntegral imgw) (fromIntegral imgh)) 0 
-          (PixelData pformat UnsignedByte imgdata)
+          (TextureSize2D (fromIntegral imgw) (fromIntegral totheight)) 0 
+          (PixelData pformat UnsignedByte movedimg)
       return texName
 
 setCamera :: Camera -> IO ()
@@ -154,7 +161,7 @@ setCamera' c = do
 
 playMatch :: Font -> (SWOSTeam, TeamOwner) -> (SWOSTeam, TeamOwner) -> IO ()
 playMatch f _ _ = do
-  tex <- loadTexture "grass1.png"
+  tex <- loadTexture Nothing Nothing "grass1.png"
   evalStateT runMatch (initMatchState tex (16, 16) (68, 105) (20, 40))
   putStrLn "Match played! Yay!"
   (w, h) <- liftIO $ getWindowSize

@@ -365,7 +365,7 @@ run = do
   setCamera ((0, 0), (width, height))
   matrixMode $= Modelview 0
   texture Texture2D $= Enabled
-  tex <- loadTexture "bg.png"
+  tex <- loadTexture Nothing Nothing "bg.png"
   f <- loadDataFont 24 48 "DejaVuSans.ttf"
   f2 <- loadDataFont 16 48 "DejaVuSans.ttf"
   allteams <- structureTeams `fmap` loadTeamsFromDirectory "teams"
