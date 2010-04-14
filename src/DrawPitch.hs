@@ -1,14 +1,9 @@
-module DrawPitch(GrassTexture(..), drawPitch)
+module DrawPitch(drawPitch)
 where
 
 import Graphics.Rendering.OpenGL as OpenGL
 
 import Drawing
-
-data GrassTexture = GrassTexture {
-    grasstexobj  :: TextureObject
-  , grasstiling  :: (Float, Float)
-  }
 
 drawRect :: Rectangle -> Float -> IO ()
 drawRect r d' = preservingMatrix $ do
@@ -52,10 +47,11 @@ draw2DArcAngled' (xp', yp') r' w' d' an = preservingMatrix $ do
 drawSpot :: (Float, Float) -> Float -> Float -> IO ()
 drawSpot p = draw2DArc p 0
 
-drawPitch :: GrassTexture -> FRange -> IO ()
-drawPitch grtexture psize@(px, py) = do
+drawPitch :: TextureObject -> FRange -> FRange -> IO ()
+drawPitch grtexobj grtiling psize@(px, py) = do
   loadIdentity
-  drawTiling (grasstexobj grtexture) (return ()) ((0, 0), psize) (-1) (grasstiling grtexture)
+  color $ Color3 1.0 1.0 (1.0 :: GLfloat)
+  drawTiling grtexobj (return ()) ((0, 0), psize) (-1) grtiling
   color $ Color3 0.8 0.8 (0.8 :: GLfloat)
   drawRectBox ((0, 0), (px, py)) lw 0 -- pitch boundaries
   drawRect ((0, (py - lw) / 2), (px, lw)) 0  -- middle line
