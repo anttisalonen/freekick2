@@ -40,60 +40,6 @@ data WorldContext = WorldContext {
 
 type TeamStructure = Tree String (String, [SWOSTeam])
 
-data SColor = SBlue | SOrange | SRed
-
-getSColor1 :: (Fractional a) => SColor -> Color3 a
-getSColor1 SBlue   = Color3 0.6784 0.8470 0.9019 -- light blue
-getSColor1 SOrange = Color3 1 0.62352 0 -- orange peel
-getSColor1 SRed    = Color3 1 0.6509 0.7882 -- carnation pink
-
-getSColor2 :: (Fractional a) => SColor -> Color3 a
-getSColor2 SBlue   = Color3 0.0 0.0   0.803 -- medium blue
-getSColor2 SOrange = Color3 0.8 0.333 0 -- burnt orange
-getSColor2 SRed    = Color3 0.9843 0.3764 0.5 -- brink pink
-
-drawBox :: Either SColor TextureObject -> IO () -> ((Int, Int), (Int, Int)) -> Int -> Maybe (String, Font) -> IO ()
-drawBox mat prep c d' stf = preservingMatrix $ do
-  let ((x, y), (w, h)) = camToNum c
-      d :: GLfloat
-      d = fromIntegral d'
-  loadIdentity
-  color $ Color3 1 1 (1 :: GLfloat)
-  prep
-  translate $ Vector3 x y d
-  case mat of
-    Right tex -> do
-      textureBinding Texture2D $= Just tex
-      renderPrimitive Quads $ do
-        texCoord (TexCoord2 0 (1 :: GLfloat))
-        vertex $ Vertex3 0 0 (0 :: GLfloat)
-        texCoord (TexCoord2 1 (1 :: GLfloat))
-        vertex $ Vertex3 w 0 0
-        texCoord (TexCoord2 1 (0 :: GLfloat))
-        vertex $ Vertex3 w h (0 :: GLfloat)
-        texCoord (TexCoord2 0 (0 :: GLfloat))
-        vertex $ Vertex3 0 h 0
-    Left scol -> do
-      textureBinding Texture2D $= Nothing
-      renderPrimitive Quads $ do
-        color $ (getSColor1 scol :: Color3 GLfloat)
-        vertex $ Vertex3 0 0 (0 :: GLfloat)
-        color $ (getSColor2 scol :: Color3 GLfloat)
-        vertex $ Vertex3 w 0 0
-        color $ (getSColor2 scol :: Color3 GLfloat)
-        vertex $ Vertex3 w h 0
-        color $ (getSColor1 scol :: Color3 GLfloat)
-        vertex $ Vertex3 0 h 0
-  case stf of
-    Nothing       -> return ()
-    Just (str, f) -> do
-      color $ Color3 0 0 (0 :: GLint)
-      pts <- getFontFaceSize f
-      translate $ Vector3 (fromIntegral $ pts `div` 4) (fromIntegral $ pts `div` 4) (1 :: GLfloat)
-      textlen <- getFontAdvance f str
-      translate $ Vector3 (w / 2 - realToFrac textlen / 2) 0 (0 :: GLfloat)
-      renderFont f str FTGL.Front
-
 drawGenScene :: TextureObject -> [Button a] -> IO ()
 drawGenScene tex btns = do
   clear [ColorBuffer, DepthBuffer]
