@@ -292,7 +292,8 @@ continueToMatch = do
                                   ((w - 210, 10), (200, 30)) 
                                   contlabel f1 
                                   (\_ -> liftIO (loadDataTexture "share/grass1.png" Nothing Nothing) >>= \ptex ->
-                                         liftIO (playMatch ptex f2 (ht, ho) (at, ao)) >> 
+                                         liftIO (loadDataTexture "share/player1.png" (Just 0) (Just 32)) >>= \pltex ->
+                                         liftIO (playMatch pltex (2, 2) ptex f2 (ht, ho) (at, ao)) >> 
                                          return False)
               allbuttons = contbutton : quitbutton : titlebutton : team1buttons ++ team2buttons
           genLoop allbuttons
