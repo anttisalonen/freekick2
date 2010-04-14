@@ -14,7 +14,8 @@ Description:    A soccer game.
 Build-type:     Simple
 
 data-files: share/bg.png, share/grass1.png,
-            share/DejaVuSans.ttf, share/DejaVuSansMono.ttf
+            share/DejaVuSans.ttf, share/DejaVuSansMono.ttf,
+            share/player1.png
 
 extra-source-files: src/Match.hs, 
                     src/Swos.hs, 
