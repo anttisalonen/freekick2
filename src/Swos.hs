@@ -3,6 +3,7 @@ module Swos(SWOSTeamFile(..),
   SWOSPlayer(..),
   SWOSKit(..),
   SWOSSkills(..),
+  SWOSColor(..),
   loadTeamsFromFile,
   loadTeamsFromDirectory,
   showPlayerNation,
@@ -79,12 +80,15 @@ data SWOSTeam = SWOSTeam {
   }
   deriving (Show, Read, Eq)
 
+data SWOSColor = Grey | White | Black | Orange | Red | Blue | Brown | LightBlue | Green | Yellow
+  deriving (Show, Read, Eq, Enum)
+
 data SWOSKit = SWOSKit {
     kittype         :: Int
-  , kitfirstcolor   :: Int
-  , kitsecondcolor  :: Int
-  , kitshortcolor   :: Int
-  , kitsockscolor   :: Int
+  , kitfirstcolor   :: SWOSColor
+  , kitsecondcolor  :: SWOSColor
+  , kitshortcolor   :: SWOSColor
+  , kitsockscolor   :: SWOSColor
   }
   deriving (Show, Read, Eq)
 
@@ -162,16 +166,16 @@ instance Binary SWOSTeam where
 instance Binary SWOSKit where
   put s = do
     putWord8Int (kittype s)
-    putWord8Int (kitfirstcolor s)
-    putWord8Int (kitsecondcolor s)
-    putWord8Int (kitshortcolor s)
-    putWord8Int (kitsockscolor s)
+    putWord8Int (fromEnum $ kitfirstcolor s)
+    putWord8Int (fromEnum $ kitsecondcolor s)
+    putWord8Int (fromEnum $ kitshortcolor s)
+    putWord8Int (fromEnum $ kitsockscolor s)
   get = do
     t1 <- getWord8Int
-    t2 <- getWord8Int
-    t3 <- getWord8Int
-    t4 <- getWord8Int
-    t5 <- getWord8Int
+    t2 <- toEnum <$> getWord8Int
+    t3 <- toEnum <$> getWord8Int
+    t4 <- toEnum <$> getWord8Int
+    t5 <- toEnum <$> getWord8Int
     return $ SWOSKit t1 t2 t3 t4 t5
 
 instance Binary SWOSPlayer where
