@@ -7,6 +7,8 @@ import Control.Monad
 import Control.Monad.State as State
 import Data.Maybe
 import qualified Data.IntMap as M
+import System.CPUTime
+import Data.Word
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -136,8 +138,12 @@ playerTexRectangle p =
 drawPlayer :: Player -> IO ()
 drawPlayer p = drawSprite (imgtexture (plimage p)) (playerTexRectangle p) (plposz p)
 
+frameTime :: Word32 -- milliseconds
+frameTime = 10
+
 runMatch :: Match ()
 runMatch = do
+  t1 <- liftIO $ getCPUTime
   liftIO $ clear [ColorBuffer, DepthBuffer]
   s <- State.get
   (w, h) <- liftIO $ getWindowSize
@@ -146,9 +152,12 @@ runMatch = do
   liftIO $ mapM_ drawPlayer (M.elems $ homeplayers s)
   liftIO $ mapM_ drawPlayer (M.elems $ awayplayers s)
   liftIO $ glSwapBuffers
-  liftIO $ SDL.delay 10
   quitting <- handleKeyEvents
   if quitting
     then return ()
-    else runMatch
+    else do
+      t2 <- liftIO $ getCPUTime
+      let tdiff = floor $ fromIntegral (t2 - t1) * (1e-9 :: Float)
+      when (tdiff < frameTime) $ liftIO $ SDL.delay (frameTime - tdiff)
+      runMatch
 
