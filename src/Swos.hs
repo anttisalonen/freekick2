@@ -4,6 +4,11 @@ module Swos(SWOSTeamFile(..),
   SWOSKit(..),
   SWOSSkills(..),
   SWOSColor(..),
+  numPositions,
+  isGoalkeeper,
+  isDefender,
+  isMidfielder,
+  isAttacker,
   loadTeamsFromFile,
   loadTeamsFromDirectory,
   showPlayerNation,
@@ -83,6 +88,21 @@ data SWOSTeam = SWOSTeam {
 data SWOSColor = Grey | White | Black | Orange | Red | Blue | Brown | LightBlue | Green | Yellow
   deriving (Show, Read, Eq, Enum)
 
+numPositions :: Int -> (Int, Int, Int)
+numPositions 0 = (4, 4, 2)
+numPositions 1 = (5, 4, 1)
+numPositions 2 = (4, 5, 1)
+numPositions 3 = (5, 3, 2)
+numPositions 4 = (3, 5, 2)
+numPositions 5 = (4, 3, 3)
+numPositions 6 = (4, 2, 4)
+numPositions 7 = (3, 4, 3)
+numPositions 8 = (4, 4, 2)
+numPositions 9 = (5, 2, 3)
+numPositions 10 = (3, 2, 5)
+numPositions 11 = (6, 3, 1)
+numPositions _ = (4, 4, 2)
+
 data SWOSKit = SWOSKit {
     kittype         :: Int
   , kitfirstcolor   :: SWOSColor
@@ -92,11 +112,32 @@ data SWOSKit = SWOSKit {
   }
   deriving (Show, Read, Eq)
 
+data SWOSPosition = Goalkeeper | RightBack | LeftBack | Defender | RightWing | LeftWing | Midfielder | Attacker
+  deriving (Show, Read, Eq, Enum)
+
+isGoalkeeper :: SWOSPosition -> Bool
+isGoalkeeper n = n == Goalkeeper
+
+isDefender :: SWOSPosition -> Bool
+isDefender RightBack = True
+isDefender LeftBack  = True
+isDefender Defender  = True
+isDefender _         = False
+
+isMidfielder :: SWOSPosition -> Bool
+isMidfielder RightWing  = True
+isMidfielder LeftWing   = True
+isMidfielder Midfielder = True
+isMidfielder _          = False
+
+isAttacker :: SWOSPosition -> Bool
+isAttacker n = n == Attacker
+
 data SWOSPlayer = SWOSPlayer {
     plnationality :: Int
   , plnumber      :: Int
   , plname        :: String
-  , plposition    :: Int
+  , plposition    :: SWOSPosition
   , plheadtype    :: Int
   , plunknown     :: Int
   , plmidbyte     :: Word8
@@ -118,7 +159,7 @@ data SWOSSkills = SWOSSkills {
   deriving (Show, Read, Eq)
 
 nullPlayer :: SWOSPlayer
-nullPlayer = SWOSPlayer 0 0 "" 0 0 0 0 nullSkills 0 (C.replicate 5 '\0')
+nullPlayer = SWOSPlayer 0 0 "" Goalkeeper 0 0 0 nullSkills 0 (C.replicate 5 '\0')
 
 nullSkills :: SWOSSkills
 nullSkills = SWOSSkills 0 0 0 0 0 0 0
@@ -184,7 +225,7 @@ instance Binary SWOSPlayer where
     putWord8 0x00
     putWord8Int (plnumber s)
     putName 23 (caps $ plname s)
-    let bn = (fromIntegral (plposition s) `shiftL` 5 .|. fromIntegral (plheadtype s) `shiftL` 3 .|. fromIntegral (plunknown s))
+    let bn = (fromIntegral (fromEnum $ plposition s) `shiftL` 5 .|. fromIntegral (plheadtype s) `shiftL` 3 .|. fromIntegral (plunknown s))
     putWord8 bn
     putWord8 (plmidbyte s)
     put (plskills s)
@@ -200,7 +241,7 @@ instance Binary SWOSPlayer where
     sks <- get
     b4 <- getWord8Int
     cr <- getBytes 5
-    return $ SWOSPlayer b0 b1 (getName ns) (b2 `shiftR` 5) (b2 `shiftR` 3 .&. 0x03) (b2 .&. 0x03) b3 sks b4 cr
+    return $ SWOSPlayer b0 b1 (getName ns) (toEnum $ b2 `shiftR` 5) (b2 `shiftR` 3 .&. 0x03) (b2 .&. 0x03) b3 sks b4 cr
 
 instance Binary SWOSSkills where
   put s = do
