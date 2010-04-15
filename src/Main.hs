@@ -12,6 +12,7 @@ import Data.Ord
 import Data.Function
 import Control.Monad.State as State
 import Control.Applicative
+import Data.Word
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL hiding (SrcAlpha)
@@ -258,6 +259,65 @@ browserButtonHandler toplevel lbl =
     Just (Left t)  -> browseTeams t (getTSLabel t)
     Just (Right t) -> clickedOnTeam t >> return False
 
+skinMagic, shirtMagic, shortsMagic, socksMagic, shoesMagic,
+  hair1Magic, hair2Magic, eyesMagic :: (Word8, Word8, Word8)
+skinMagic = (197, 169, 58)
+shirtMagic = (255, 0, 0)
+shortsMagic = (255, 240, 0)
+socksMagic = (0, 0, 255)
+shoesMagic = (3, 3, 3)
+hair1Magic = (0, 0, 0)
+hair2Magic = (16, 16, 16)
+eyesMagic = (140, 85, 14)
+
+grey, white, black, orange, red, blue, brown, lightblue,
+  green, yellow :: (Word8, Word8, Word8)
+grey = (128, 128, 128)
+white = (255, 255, 255)
+black = (0, 0, 0)
+orange = (255, 127, 0)
+red = (255, 0, 0)
+blue = (0, 0, 255)
+brown = (150, 75, 0)
+lightblue = (173, 216, 230)
+green = (0, 255, 0)
+yellow = (255, 255, 0)
+
+swosColorToColor :: SWOSColor -> (Word8, Word8, Word8)
+swosColorToColor Swos.Grey = grey
+swosColorToColor Swos.White = white
+swosColorToColor Swos.Black = black
+swosColorToColor Swos.Orange = orange
+swosColorToColor Swos.Red = red
+swosColorToColor Swos.Blue = blue
+swosColorToColor Swos.Brown = brown
+swosColorToColor Swos.LightBlue = lightblue
+swosColorToColor Swos.Green = green
+swosColorToColor Swos.Yellow = yellow
+
+colorKit :: SWOSKit -> ChangeRGB
+colorKit k c 
+  | c == shirtMagic  = swosColorToColor (kitfirstcolor k)
+  | c == shortsMagic = swosColorToColor (kitshortcolor k)
+  | c == socksMagic  = swosColorToColor (kitsockscolor k)
+  | otherwise        = c
+
+startMatch
+     :: Font
+     -> Font
+     -> SWOSTeam
+     -> TeamOwner
+     -> SWOSTeam
+     -> TeamOwner
+     -> String
+     -> MenuBlock Bool
+startMatch f1 f2 ht ho at ao _ = do
+  ptex <- liftIO $ loadDataTexture Nothing "share/grass1.png" Nothing Nothing
+  let cf = colorKit (primarykit ht)
+  pltex <- liftIO $ loadDataTexture (Just cf) "share/player1.png" (Just 0) (Just 32)
+  liftIO $ playMatch pltex (2, 2) ptex f2 (ht, ho) (at, ao)
+  return False
+
 continueToMatch :: MenuBlock ()
 continueToMatch = do
   c <- State.get
@@ -291,22 +351,9 @@ continueToMatch = do
               contbutton = Button (Left SOrange) 
                                   ((w - 210, 10), (200, 30)) 
                                   contlabel f1 
-                                  (\_ -> liftIO (loadDataTexture Nothing "share/grass1.png" Nothing Nothing) >>= \ptex ->
-                                         liftIO (loadDataTexture (Just rToB) "share/player1.png" (Just 0) (Just 32)) >>= \pltex ->
-                                         liftIO (playMatch pltex (2, 2) ptex f2 (ht, ho) (at, ao)) >> 
-                                         return False)
+                                  (startMatch f1 f2 ht ho at ao)
               allbuttons = contbutton : quitbutton : titlebutton : team1buttons ++ team2buttons
           genLoop allbuttons
-
--- skin: 197, 169, 58
--- shirt: 255, 0, 0
--- shorts: 255, 240, 0
--- socks: 0, 0, 255
--- shoes: 3, 3, 3
--- hair 1: 0, 0, 0
--- hair 2: 16, 16, 16
--- eyes: 140, 85, 14
-rToB (r, g, b) = (255, g, b)
 
 ownerToColor :: String -> WorldContext -> SColor
 ownerToColor t c = 
