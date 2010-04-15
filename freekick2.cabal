@@ -42,6 +42,7 @@ Executable freekick2
                    binary>=0.5.0.0,
                    filepath>=1.1.0.0,
                    template-haskell,
+                   containers>=0.3.0.0,
                    bytestring>=0.9.0.0
   Main-is:         Main.hs
   Hs-Source-Dirs:  src

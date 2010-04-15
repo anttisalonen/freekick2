@@ -313,9 +313,11 @@ startMatch
      -> MenuBlock Bool
 startMatch f1 f2 ht ho at ao _ = do
   ptex <- liftIO $ loadDataTexture Nothing "share/grass1.png" Nothing Nothing
-  let cf = colorKit (primarykit ht)
-  pltex <- liftIO $ loadDataTexture (Just cf) "share/player1.png" (Just 0) (Just 32)
-  liftIO $ playMatch pltex (2, 2) ptex f2 (ht, ho) (at, ao)
+  let hcf = colorKit (primarykit ht)
+  pltex1 <- liftIO $ loadDataTexture (Just hcf) "share/player1.png" (Just 0) (Just 32)
+  let acf = colorKit (primarykit at)
+  pltex2 <- liftIO $ loadDataTexture (Just acf) "share/player1.png" (Just 0) (Just 32)
+  liftIO $ playMatch (MatchTextureSet ptex pltex1 pltex2 (2, 2)) f2 (ht, ho) (at, ao)
   return False
 
 continueToMatch :: MenuBlock ()
