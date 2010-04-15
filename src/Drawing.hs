@@ -7,7 +7,7 @@ import Prelude hiding (catch)
 import Data.Array.Storable
 import Control.Monad
 import Data.Maybe
-import Foreign.Ptr
+import Foreign
 
 import Graphics.Rendering.FTGL as FTGL
 import Graphics.Rendering.OpenGL as OpenGL
@@ -64,8 +64,27 @@ drawTiling tex prep c d' (s', t') = preservingMatrix $ do
     vertex $ Vertex3 0 h 0
   textureBinding Texture2D $= Nothing
 
-loadTexture :: Maybe Int -> Maybe Int -> FilePath -> IO TextureObject
-loadTexture mcuttop mtaketop fp = do
+type ChangeRGB = (Word8, Word8, Word8) -> (Word8, Word8, Word8)
+
+filterImage
+  :: ChangeRGB -- pixel modifier function
+     -> Ptr Word8 -- image data
+     -> Int -- image width
+     -> Int -- image height
+     -> Int -- num bytes per pixel (must be at least 3)
+     -> IO ()
+filterImage mf img imgw imgh numbytes =
+  forM_ [0, numbytes..(numbytes * (imgw * imgh - 1))] $ \i -> do
+    r <- peekElemOff img i
+    g <- peekElemOff img (i + 1)
+    b <- peekElemOff img (i + 2)
+    let (r', g', b') = mf (r, g, b)
+    pokeElemOff img i r'
+    pokeElemOff img (i + 1) g'
+    pokeElemOff img (i + 2) b'
+
+loadTexture :: (Maybe ChangeRGB) -> Maybe Int -> Maybe Int -> FilePath -> IO TextureObject
+loadTexture mmodfunc mcuttop mtaketop fp = do
   eimg <- loadPNGFile fp
   case eimg of
     Left err  -> throwIO $ mkIOError doesNotExistErrorType ("could not load texture: " ++ err) Nothing (Just fp)
@@ -77,13 +96,18 @@ loadTexture mcuttop mtaketop fp = do
       let isAlpha = hasAlphaChannel img
           intform = if isAlpha then RGBA' else RGB'
           pformat = if isAlpha then RGBA  else RGB
+          cuttop = fromMaybe 0 mcuttop
+          taketop = fromMaybe (fromIntegral imgh) mtaketop
+          numbytes = if isAlpha then 4 else 3
+          totheight = taketop - cuttop
+          imgarr = imageData img
+      case mmodfunc of
+        Nothing -> return ()
+        Just mf -> withStorableArray (imageData img) $ \imgdata ->
+            let movedimg = plusPtr imgdata (fromIntegral imgw * cuttop * numbytes)
+            in filterImage mf movedimg (fromIntegral imgw) totheight numbytes
       withStorableArray (imageData img) $ \imgdata -> do
-        let movedimg = case mcuttop of
-                         Nothing     -> imgdata
-                         Just cuttop -> 
-                           let numbytes = if isAlpha then 4 else 3
-                           in plusPtr imgdata (fromIntegral imgw * cuttop * numbytes)
-        let totheight = (fromMaybe (fromIntegral imgh) mtaketop) - (fromMaybe 0 mcuttop)
+        let movedimg = plusPtr imgdata (fromIntegral imgw * cuttop * numbytes)
         texImage2D Nothing NoProxy 0 intform
           (TextureSize2D (fromIntegral imgw) (fromIntegral totheight)) 0 
           (PixelData pformat UnsignedByte movedimg)

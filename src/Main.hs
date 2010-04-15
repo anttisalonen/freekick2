@@ -291,12 +291,22 @@ continueToMatch = do
               contbutton = Button (Left SOrange) 
                                   ((w - 210, 10), (200, 30)) 
                                   contlabel f1 
-                                  (\_ -> liftIO (loadDataTexture "share/grass1.png" Nothing Nothing) >>= \ptex ->
-                                         liftIO (loadDataTexture "share/player1.png" (Just 0) (Just 32)) >>= \pltex ->
+                                  (\_ -> liftIO (loadDataTexture Nothing "share/grass1.png" Nothing Nothing) >>= \ptex ->
+                                         liftIO (loadDataTexture (Just rToB) "share/player1.png" (Just 0) (Just 32)) >>= \pltex ->
                                          liftIO (playMatch pltex (2, 2) ptex f2 (ht, ho) (at, ao)) >> 
                                          return False)
               allbuttons = contbutton : quitbutton : titlebutton : team1buttons ++ team2buttons
           genLoop allbuttons
+
+-- skin: 197, 169, 58
+-- shirt: 255, 0, 0
+-- shorts: 255, 240, 0
+-- socks: 0, 0, 255
+-- shoes: 3, 3, 3
+-- hair 1: 0, 0, 0
+-- hair 2: 16, 16, 16
+-- eyes: 140, 85, 14
+rToB (r, g, b) = (255, g, b)
 
 ownerToColor :: String -> WorldContext -> SColor
 ownerToColor t c = 
@@ -380,8 +390,8 @@ loadDataResource fp act = do
     throwIO $ mkIOError doesNotExistErrorType "loading data resource" Nothing (Just fn)
   act fn
 
-loadDataTexture :: FilePath -> Maybe Int -> Maybe Int -> IO TextureObject
-loadDataTexture fp mn mx = loadDataResource fp (loadTexture mn mx)
+loadDataTexture :: Maybe ChangeRGB -> FilePath -> Maybe Int -> Maybe Int -> IO TextureObject
+loadDataTexture cf fp mn mx = loadDataResource fp (loadTexture cf mn mx)
 
 run :: IO ()
 run = do
@@ -399,7 +409,7 @@ run = do
   setCamera ((0, 0), (width, height))
   matrixMode $= Modelview 0
   texture Texture2D $= Enabled
-  tex <- loadDataTexture "share/bg.png" Nothing Nothing 
+  tex <- loadDataTexture Nothing "share/bg.png" Nothing Nothing 
   f <- loadDataFont 24 48 "share/DejaVuSans.ttf"
   f2 <- loadDataFont 16 48 "share/DejaVuSans.ttf"
   allteams <- structureTeams `fmap` loadTeamsFromDirectory "teams"
