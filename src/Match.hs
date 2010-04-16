@@ -6,9 +6,11 @@ where
 import Control.Monad
 import Control.Monad.State as State
 import Data.Maybe
+import Data.List
 import qualified Data.IntMap as M
 import System.CPUTime
 import Data.Word
+import Data.Function
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -218,8 +220,13 @@ playerTexRectangle p =
           (c, d) = (fromIntegral e, fromIntegral f)
           (e, f) = imgsize $ plimage p
 
+playerHeight :: Player -> Float
+playerHeight p = 
+  let (_, yv) = plposition p
+  in plposz p - yv * 0.002
+
 drawPlayer :: Player -> IO ()
-drawPlayer p = drawSprite (imgtexture (plimage p)) (playerTexRectangle p) (plposz p)
+drawPlayer p = drawSprite (imgtexture (plimage p)) (playerTexRectangle p) (playerHeight p)
 
 frameTime :: Word32 -- milliseconds
 frameTime = 10
@@ -232,8 +239,7 @@ drawMatch = do
     clear [ColorBuffer, DepthBuffer]
     setCamera' (campos s, (fromIntegral (w `div` 20), fromIntegral (h `div` 20)))
     callList (pitchlist s)
-    mapM_ drawPlayer (M.elems $ homeplayers s)
-    mapM_ drawPlayer (M.elems $ awayplayers s)
+    mapM_ drawPlayer $ sortBy (compare `on` playerHeight) (M.elems (homeplayers s) ++ M.elems (awayplayers s))
     glSwapBuffers
 
 aiControlled :: MatchState -> PlayerID -> Bool
