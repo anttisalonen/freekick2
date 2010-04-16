@@ -39,8 +39,32 @@ type PlayerID = (Int, Bool)
 
 type FVector3 = (Float, Float, Float)
 
+getX, getY, getZ :: FVector3 -> Float
+getX (x, _, _) = x
+getY (_, y, _) = y
+getZ (_, _, z) = z
+
+addX, addY, addZ :: Float -> FVector3 -> FVector3
+addX v (x, y, z) = (v + x, y, z)
+addY v (x, y, z) = (x, v + y, z)
+addZ v (x, y, z) = (x, y, v + z)
+
+setX, setY, setZ :: Float -> FVector3 -> FVector3
+setX v (_, y, z) = (v, y, z)
+setY v (x, _, z) = (x, v, z)
+setZ v (x, y, _) = (x, y, v)
+
+(*+*) :: FVector3 -> FVector3 -> FVector3
+(x1, y1, z1) *+* (x2, y2, z2) = (x1 + x2, y1 + y2, z1 + z2)
+
+(***) :: FVector3 -> Float -> FVector3
+(x1, y1, z1) *** s = (x1 * s, y1 * s, z1 * s)
+
+to2D :: FVector3 -> FRange
+to2D (x, y, _) = (x, y)
+
 data Ball = Ball {
-    ballposition :: FRange
+    ballposition :: FVector3
   , ballvelocity :: FVector3
   , ballimage    :: ImageInfo
   , ballposz     :: Float
@@ -123,7 +147,7 @@ nullFVector3 :: FVector3
 nullFVector3 = (0, 0, 0)
 
 initialBall :: FRange -> ImageInfo -> Ball
-initialBall (px, py) img = Ball (px / 2, py / 2) nullFVector3 img onPitchZ
+initialBall (px, py) img = Ball (px / 2, py / 2, 0) nullFVector3 img onPitchZ
 
 playerHome :: Player -> Bool
 playerHome = snd . playerid
@@ -349,24 +373,23 @@ kick vec p = do
 
 inKickDistance :: MatchState -> Player -> Bool
 inKickDistance m p = 
-  let bp = ballposition (ball m)
-      bz = ballposz (ball m)
+  let (bx, by, bz) = ballposition (ball m)
       pp = plposition p
   in if bz > 0.8
        then False
-       else dist bp pp < 0.5
+       else dist2 (bx, by) pp < 0.5
+
+dist22 :: FRange -> FRange -> Float
+dist22 (x1, y1) (x2, y2) = ((x2 - x1)**2) + ((y2 - y1)**2)
 
 dist2 :: FRange -> FRange -> Float
-dist2 (x1, y1) (x2, y2) = ((x2 - x1)**2) + ((y2 - y1)**2)
-
-dist :: FRange -> FRange -> Float
-dist p1 p2 = sqrt $ dist2 p1 p2
+dist2 p1 p2 = sqrt $ dist2 p1 p2
 
 kickoff :: Player -> Match ()
 kickoff p = do
   s <- State.get
   if not (inKickDistance s p)
-    then goto (ballposition (ball s)) p
+    then goto (to2D (ballposition (ball s))) p
     else kick (2, 0, 0) p
 
 doAI :: Match ()
@@ -429,6 +452,34 @@ handleActions = do
   mapM_ handleAction (pendingactions s)
   sModPendingactions $ const []
 
+updateBallPosition :: Match ()
+updateBallPosition = do
+  s <- State.get
+  sModBall $ modBallposition (*+* ((ballvelocity (ball s)) *** (fromIntegral frameTime / 1000)))
+  collCheckBall
+  gravitateBall
+
+collCheckBall :: Match ()
+collCheckBall = do
+  s <- State.get
+  let zv = getZ (ballposition (ball s))
+  when (zv < 0) $ do
+    sModBall $ modBallposition $ addZ (2 * (-zv))
+    let zvel = getZ $ ballvelocity $ ball s
+    sModBall $ modBallvelocity $ addZ (2 * (-zvel))
+
+gravitateBall :: Match ()
+gravitateBall = do
+  s <- State.get
+  let zv = getZ $ ballposition $ ball s
+  let zvel = getZ $ ballvelocity $ ball s
+  if (zv > 0.01)
+    then 
+      sModBall $ modBallvelocity $ addZ (-9.81 * (fromIntegral frameTime / 1000))
+    else
+      when (abs zvel < 0.1) $ 
+        sModBall $ modBallvelocity $ setZ 0
+
 runMatch :: Match ()
 runMatch = do
   t1 <- liftIO $ getCPUTime
@@ -439,6 +490,7 @@ runMatch = do
       drawMatch
       doAI
       handleActions
+      updateBallPosition
       updateBallPlay
       t2 <- liftIO $ getCPUTime
       let tdiff = floor $ fromIntegral (t2 - t1) * (1e-9 :: Float)
