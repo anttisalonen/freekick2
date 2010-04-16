@@ -28,13 +28,24 @@ data MatchTextureSet = MatchTextureSet {
     pitchtexture      :: TextureObject
   , hometexture       :: TextureObject
   , awaytexture       :: TextureObject
-  , humandrawsize     :: (Int, Int)
+  , ballimginfo       :: ImageInfo
+  , humandrawsize     :: FRange
   }
 
 data PlPosition = Goalkeeper | Defender | Midfielder | Attacker
   deriving (Eq)
 
 type PlayerID = (Int, Bool)
+
+type FVector3 = (Float, Float, Float)
+
+data Ball = Ball {
+    ballposition :: FRange
+  , ballvelocity :: FVector3
+  , ballimage    :: ImageInfo
+  , ballposz     :: Float
+  }
+$(deriveMods ''Ball)
 
 data Player = Player {
     plposition :: FRange
@@ -48,16 +59,23 @@ $(deriveMods ''Player)
 type PlayerMap = M.IntMap Player
 type Formation = M.IntMap FRange
 
+data BallPlay = BeforeKickoff | WaitForKickoff Int | DoKickoff | InPlay
+
+data Action = BallKicked
+
 data MatchState = MatchState {
-    pitchlist     :: DisplayList
-  , currkeys      :: [SDLKey]
-  , pitchsize     :: (Float, Float)
-  , campos        :: (Float, Float)
-  , homeplayers   :: PlayerMap
-  , awayplayers   :: PlayerMap
-  , homeformation :: Formation
-  , awayformation :: Formation
-  , controlledpl  :: Maybe PlayerID
+    pitchlist      :: DisplayList
+  , currkeys       :: [SDLKey]
+  , pitchsize      :: (Float, Float)
+  , campos         :: (Float, Float)
+  , homeplayers    :: PlayerMap
+  , awayplayers    :: PlayerMap
+  , homeformation  :: Formation
+  , awayformation  :: Formation
+  , controlledpl   :: Maybe PlayerID
+  , ballplay       :: BallPlay
+  , ball           :: Ball
+  , pendingactions :: [Action]
   }
 $(deriveMods ''MatchState)
 
@@ -83,12 +101,28 @@ goUp n (x, y) = (x, y + n)
 goRight :: Float -> FRange -> FRange
 goRight n (x, y) = (x + n, y)
 
-initMatchState :: DisplayList -> FRange -> FRange -> MatchTextureSet -> (Swos.SWOSTeam, Swos.SWOSTeam) -> Maybe PlayerID -> MatchState
-initMatchState plist psize cpos pltexs (ht, at) c = MatchState plist [] psize cpos hps aps hf af c
+initMatchState :: DisplayList 
+               -> FRange -> FRange 
+               -> MatchTextureSet 
+               -> (Swos.SWOSTeam, Swos.SWOSTeam) 
+               -> Maybe PlayerID -> MatchState
+initMatchState plist psize cpos pltexs (ht, at) c = 
+  MatchState plist [] psize cpos hps aps hf af c BeforeKickoff 
+             (initialBall psize (ballimginfo pltexs))
+             []
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps
         af  = createFormation False aps
+
+onPitchZ :: Float
+onPitchZ = 1
+
+nullFVector3 :: FVector3
+nullFVector3 = (0, 0, 0)
+
+initialBall :: FRange -> ImageInfo -> Ball
+initialBall (px, py) img = Ball (px / 2, py / 2) nullFVector3 img onPitchZ
 
 playerHome :: Player -> Bool
 playerHome = snd . playerid
@@ -164,7 +198,7 @@ swosPositionToPosition p
 
 swosPlayerToPlayer :: Bool -> MatchTextureSet -> FRange -> Swos.SWOSPlayer -> Player
 swosPlayerToPlayer home texs (px, py) p = 
-  Player (px - 10, py / 2) (ImageInfo tex size) 1 ((Swos.plnumber p), home) npos
+  Player (px - 10, py / 2) (ImageInfo tex size) onPitchZ ((Swos.plnumber p), home) npos
     where tex = if home then hometexture texs else awaytexture texs
           size = humandrawsize texs
           npos = swosPositionToPosition (Swos.plposition p)
@@ -217,8 +251,7 @@ playerTexRectangle :: Player -> Rectangle
 playerTexRectangle p =
   ((a - c / 2, b), (c, d))
     where (a, b) = plposition p
-          (c, d) = (fromIntegral e, fromIntegral f)
-          (e, f) = imgsize $ plimage p
+          (c, d) = imgsize $ plimage p
 
 playerHeight :: Player -> Float
 playerHeight p = 
@@ -253,6 +286,11 @@ formationPosition m pl =
   let (plnum, plhome) = playerid pl 
       sourcemap       = if plhome then homeformation m else awayformation m
   in M.findWithDefault (0.5, 0.5) plnum sourcemap
+
+absToRel :: MatchState -> FRange -> FRange
+absToRel m (x, y) =
+  let (px, py) = pitchsize m
+  in (x / px, y / py)
 
 relToAbs :: MatchState -> FRange -> FRange
 relToAbs m (x, y) =
@@ -298,16 +336,96 @@ shouldDoKickoff m pl = kickoffer m == playerid pl
 shouldAssistKickoff :: MatchState -> Player -> Bool
 shouldAssistKickoff m pl = kickoffAssister m == playerid pl
 
+kick :: FVector3 -> Player -> Match ()
+kick vec p = do
+  s <- State.get
+  if not (inKickDistance s p)
+    then return ()
+    else do
+      sModBall $ modBallvelocity $ const vec
+      sModPendingactions $ (BallKicked:)
+
+inKickDistance :: MatchState -> Player -> Bool
+inKickDistance m p = 
+  let bp = ballposition (ball m)
+      bz = ballposz (ball m)
+      pp = plposition p
+  in if bz > 0.8
+       then False
+       else dist bp pp < 0.5
+
+dist2 :: FRange -> FRange -> Float
+dist2 (x1, y1) (x2, y2) = ((x2 - x1)**2) + ((y2 - y1)**2)
+
+dist :: FRange -> FRange -> Float
+dist p1 p2 = sqrt $ dist2 p1 p2
+
+kickoff :: Player -> Match ()
+kickoff p = do
+  s <- State.get
+  if not (inKickDistance s p)
+    then goto (ballposition (ball s)) p
+    else kick (2, 0, 0) p
+
 doAI :: Match ()
 doAI = do
   s <- State.get
-  forM_ (M.elems (awayplayers s) ++ (M.elems (homeplayers s))) $ \pl -> do
-    when (aiControlled s (playerid pl)) $ do
-      if shouldDoKickoff s pl
-        then goto (relToAbs s (0.5, 0.5)) pl
-        else if shouldAssistKickoff s pl
-               then goto (relToAbs s (0.52, 0.5)) pl
-               else goto (formationPositionAbs s pl) pl
+  case ballplay s of
+    BeforeKickoff -> do
+      forM_ (M.elems (awayplayers s) ++ (M.elems (homeplayers s))) $ \pl -> do
+        when (aiControlled s (playerid pl)) $ do
+          if shouldDoKickoff s pl
+            then goto (relToAbs s (0.5, 0.5)) pl
+            else if shouldAssistKickoff s pl
+                   then goto (relToAbs s (0.52, 0.5)) pl
+                   else goto (formationPositionAbs s pl) pl
+    WaitForKickoff _ -> return ()
+    DoKickoff -> do
+      forM_ (M.elems (awayplayers s) ++ (M.elems (homeplayers s))) $ \pl -> do
+        when (aiControlled s (playerid pl)) $ do
+          if shouldDoKickoff s pl
+            then kickoff pl
+            else return ()
+    InPlay -> return () -- TODO
+
+allPlayers :: MatchState -> [Player]
+allPlayers m = M.elems (homeplayers m) ++ (M.elems (awayplayers m))
+
+playerOnHisSide :: MatchState -> Player -> Bool
+playerOnHisSide m p =
+  let (_, y) = absToRel m (plposition p)
+      home   = playerHome p
+  in if home then y <= 0.5 else y >= 0.5
+
+updateBallPlay :: Match ()
+updateBallPlay = do
+  s <- State.get
+  case ballplay s of
+    BeforeKickoff -> do
+      when (all (playerOnHisSide s) (allPlayers s)) $
+        sModBallplay (const $ WaitForKickoff 2000)
+    WaitForKickoff timer -> do
+      if timer < 0
+        then sModBallplay (const DoKickoff)
+        else sModBallplay (const $ WaitForKickoff (timer - fromIntegral frameTime))
+    DoKickoff -> do
+      return () -- updated by handleAction BallKicked
+    InPlay -> do
+      return () -- TODO
+
+handleAction :: Action -> Match ()
+handleAction BallKicked = do
+  s <- State.get
+  case ballplay s of
+    DoKickoff -> do
+      sModBallplay $ const InPlay
+    _ -> return ()
+
+handleActions :: Match ()
+handleActions = do
+  s <- State.get
+  mapM_ handleAction (pendingactions s)
+  sModPendingactions $ const []
 
 runMatch :: Match ()
 runMatch = do
@@ -318,6 +436,8 @@ runMatch = do
     else do
       drawMatch
       doAI
+      handleActions
+      updateBallPlay
       t2 <- liftIO $ getCPUTime
       let tdiff = floor $ fromIntegral (t2 - t1) * (1e-9 :: Float)
       when (tdiff < frameTime) $ liftIO $ SDL.delay (frameTime - tdiff)

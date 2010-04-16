@@ -15,7 +15,7 @@ import Codec.Image.PNG
 
 data ImageInfo = ImageInfo {
     imgtexture :: TextureObject
-  , imgsize    :: (Int, Int)
+  , imgsize    :: FRange
   }
 
 type FRange = (Float, Float)
