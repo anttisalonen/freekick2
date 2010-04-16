@@ -76,6 +76,7 @@ data MatchState = MatchState {
   , ballplay       :: BallPlay
   , ball           :: Ball
   , pendingactions :: [Action]
+  , lasttouch      :: Maybe PlayerID
   }
 $(deriveMods ''MatchState)
 
@@ -109,7 +110,7 @@ initMatchState :: DisplayList
 initMatchState plist psize cpos pltexs (ht, at) c = 
   MatchState plist [] psize cpos hps aps hf af c BeforeKickoff 
              (initialBall psize (ballimginfo pltexs))
-             []
+             [] Nothing
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps
@@ -344,6 +345,7 @@ kick vec p = do
     else do
       sModBall $ modBallvelocity $ const vec
       sModPendingactions $ (BallKicked:)
+      sModLasttouch $ const $ Just $ playerid p
 
 inKickDistance :: MatchState -> Player -> Bool
 inKickDistance m p = 
