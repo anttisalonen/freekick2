@@ -23,6 +23,8 @@ import DrawPitch
 import DeriveMod
 import Ball
 import FVector
+import Player
+import SWOSShell
 
 data TeamOwner = HumanOwner | AIOwner
 
@@ -33,20 +35,6 @@ data MatchTextureSet = MatchTextureSet {
   , ballimginfo       :: ImageInfo
   , humandrawsize     :: FRange
   }
-
-data PlPosition = Goalkeeper | Defender | Midfielder | Attacker
-  deriving (Eq)
-
-type PlayerID = (Int, Bool)
-
-data Player = Player {
-    plposition :: FRange
-  , plimage    :: ImageInfo
-  , plposz     :: Float
-  , playerid   :: PlayerID
-  , plpos      :: PlPosition
-  }
-$(deriveMods ''Player)
 
 type PlayerMap = M.IntMap Player
 type Formation = M.IntMap FRange
@@ -111,12 +99,6 @@ initMatchState plist psize cpos pltexs (ht, at) c =
 onPitchZ :: Float
 onPitchZ = 1
 
-playerHome :: Player -> Bool
-playerHome = snd . playerid
-
-playerNumber :: Player -> Int
-playerNumber = fst . playerid
-
 mkGoalkeeperFormation :: Bool -> [Player] -> Formation
 mkGoalkeeperFormation True  pls = M.fromList (zip (map playerNumber pls) (repeat (0.5, 0)))
 mkGoalkeeperFormation False pls = M.fromList (zip (map playerNumber pls) (repeat (0.5, 1)))
@@ -176,20 +158,6 @@ createFormation home pls' =
       fmp = mkAttackerFormation home fs
   in gmap `M.union` dmap `M.union` mmap `M.union` fmp
 
-swosPositionToPosition :: Swos.SWOSPosition -> PlPosition
-swosPositionToPosition p 
-  | Swos.isGoalkeeper p = Goalkeeper
-  | Swos.isDefender   p = Defender
-  | Swos.isMidfielder p = Midfielder
-  | otherwise           = Attacker
-
-swosPlayerToPlayer :: Bool -> MatchTextureSet -> FRange -> Swos.SWOSPlayer -> Player
-swosPlayerToPlayer home texs (px, py) p = 
-  Player (px - 10, py / 2) (ImageInfo tex size) onPitchZ ((Swos.plnumber p), home) npos
-    where tex = if home then hometexture texs else awaytexture texs
-          size = humandrawsize texs
-          npos = swosPositionToPosition (Swos.plposition p)
-
 createPlayers :: Bool -> MatchTextureSet -> FRange -> Swos.SWOSTeam -> PlayerMap
 createPlayers home texs psize t =
   let (d, m, f) = Swos.numPositions (Swos.teamtactics t)
@@ -199,7 +167,15 @@ createPlayers home texs psize t =
       fs = take f $ filter (\p -> Swos.isAttacker (Swos.plposition p)) (Swos.teamplayers t)
       pllist = g ++ ds ++ ms ++ fs
       plnums = map Swos.plnumber pllist
-  in M.fromList (zip plnums (map (swosPlayerToPlayer home texs psize) pllist))
+  in M.fromList 
+       (zip plnums 
+            (map (swosPlayerToPlayer onPitchZ
+                                     home 
+                                     (hometexture texs) 
+                                     (awaytexture texs) 
+                                     (humandrawsize texs) 
+                                     psize) 
+                 pllist))
 
 keyChanges :: [SDL.Event] -> [(SDLKey, Bool)]
 keyChanges = catMaybes . map f
@@ -233,20 +209,6 @@ handleKeyEvents = do
       when (SDLK_a `elem` ks) $ modify $ modPlayer c $ modPlposition (goRight (-plspeed))
       when (SDLK_d `elem` ks) $ modify $ modPlayer c $ modPlposition (goRight plspeed)
   return (SDLK_ESCAPE `elem` ks)
-
-playerTexRectangle :: Player -> Rectangle
-playerTexRectangle p =
-  ((a - c / 2, b), (c, d))
-    where (a, b) = plposition p
-          (c, d) = imgsize $ plimage p
-
-playerHeight :: Player -> Float
-playerHeight p = 
-  let (_, yv) = plposition p
-  in plposz p - yv * 0.002
-
-drawPlayer :: Player -> IO ()
-drawPlayer p = drawSprite (imgtexture (plimage p)) (playerTexRectangle p) (playerHeight p)
 
 frameTime :: Word32 -- milliseconds
 frameTime = 10
