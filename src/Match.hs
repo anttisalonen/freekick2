@@ -213,7 +213,7 @@ handleKeyEvents = do
 
 playerTexRectangle :: Player -> Rectangle
 playerTexRectangle p =
-  ((a, b), (c, d))
+  ((a - c / 2, b), (c, d))
     where (a, b) = plposition p
           (c, d) = (fromIntegral e, fromIntegral f)
           (e, f) = imgsize $ plimage p
