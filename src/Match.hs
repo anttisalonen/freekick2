@@ -309,28 +309,77 @@ kickoff p = do
   s <- State.get
   if not (inKickDistance s p)
     then goto (to2D (ballposition (ball s))) p
-    else kick (2, 0, 0) p
+    else kick (10, 0, 0) p
+
+beforeKickoffAI :: Match ()
+beforeKickoffAI = do
+  s <- State.get
+  forM_ (M.elems (awayplayers s) ++ (M.elems (homeplayers s))) $ \pl -> do
+    when (aiControlled s (playerid pl)) $ do
+      if shouldDoKickoff s pl
+        then goto (relToAbs s (0.5, 0.5)) pl
+        else if shouldAssistKickoff s pl
+               then goto (relToAbs s (0.52, 0.5)) pl
+               else goto (formationPositionAbs s pl) pl
 
 doAI :: Match ()
 doAI = do
   s <- State.get
   case ballplay s of
-    BeforeKickoff -> do
-      forM_ (M.elems (awayplayers s) ++ (M.elems (homeplayers s))) $ \pl -> do
-        when (aiControlled s (playerid pl)) $ do
-          if shouldDoKickoff s pl
-            then goto (relToAbs s (0.5, 0.5)) pl
-            else if shouldAssistKickoff s pl
-                   then goto (relToAbs s (0.52, 0.5)) pl
-                   else goto (formationPositionAbs s pl) pl
-    WaitForKickoff _ -> return ()
+    BeforeKickoff    -> beforeKickoffAI
+    WaitForKickoff _ -> beforeKickoffAI
     DoKickoff -> do
       forM_ (M.elems (awayplayers s) ++ (M.elems (homeplayers s))) $ \pl -> do
         when (aiControlled s (playerid pl)) $ do
           if shouldDoKickoff s pl
             then kickoff pl
             else return ()
-    InPlay -> return () -- TODO
+    InPlay -> do
+      forM_ (allPlayers s) $ \pl -> do
+        if inKickDistance s pl
+          then onBallAI pl
+          else offBallAI pl
+
+onBallAI :: Player -> Match ()
+onBallAI pl = do
+  s <- State.get
+  if cannotDribble s pl
+    then pass pl
+    else dribble pl
+
+cannotDribble :: MatchState -> Player -> Bool
+cannotDribble _ _ = False
+
+dribble :: Player -> Match ()
+dribble _ = return ()
+
+getPassPower :: FRange -> Player -> FVector3
+getPassPower _ _ = (0, 0, 0)
+
+pass :: Player -> Match ()
+pass pl = do
+  s <- State.get
+  let tgtpl = bestPassTarget s pl
+      passpwr = getPassPower (plposition tgtpl) pl
+  kick passpwr pl
+
+bestPassTarget :: MatchState -> Player -> Player
+bestPassTarget m pl = pl
+
+ownPlayers :: MatchState -> Player -> [Player]
+ownPlayers m pl =
+  if playerHome pl
+    then M.elems (homeplayers m)
+    else M.elems (awayplayers m)
+
+opponentPlayers :: MatchState -> Player -> [Player]
+opponentPlayers m pl = 
+  if not $ playerHome pl
+    then M.elems (homeplayers m)
+    else M.elems (awayplayers m)
+
+offBallAI :: Player -> Match ()
+offBallAI pl = return ()
 
 allPlayers :: MatchState -> [Player]
 allPlayers m = M.elems (homeplayers m) ++ (M.elems (awayplayers m))
