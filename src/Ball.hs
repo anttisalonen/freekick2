@@ -46,9 +46,9 @@ slowDownBall dt b =
       zvel = getZ $ ballvelocity $ b
   in if zv > 0.01
        then  -- air viscosity
-         modBallvelocity (*** (1 - (0.1 * dt))) b
+         modBallvelocity (*** (1 - (1 * dt))) b
        else  -- rolling friction
-         modBallvelocity (*** (1 - (0.1 * dt))) b
+         modBallvelocity (*** (1 - (1 * dt))) b
 
 drawBall :: Ball -> IO ()
 drawBall b = drawSprite (imgtexture (ballimage b)) (to2D (ballposition b), imgsize (ballimage b)) (ballposz b)
