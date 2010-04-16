@@ -32,4 +32,10 @@ to2D (x, y, _) = (x, y)
 nullFVector3 :: FVector3
 nullFVector3 = (0, 0, 0)
 
+dist22 :: FRange -> FRange -> Float
+dist22 (x1, y1) (x2, y2) = ((x2 - x1)**2) + ((y2 - y1)**2)
+
+dist2 :: FRange -> FRange -> Float
+dist2 p1 p2 = sqrt $ dist2 p1 p2
+
 
