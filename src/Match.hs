@@ -222,6 +222,7 @@ drawMatch = do
     setCamera' (campos s, (fromIntegral (w `div` 20), fromIntegral (h `div` 20)))
     callList (pitchlist s)
     mapM_ drawPlayer $ sortBy (compare `on` playerHeight) (M.elems (homeplayers s) ++ M.elems (awayplayers s))
+    drawBall (ball s)
     glSwapBuffers
 
 aiControlled :: MatchState -> PlayerID -> Bool
