@@ -70,7 +70,7 @@ type Match = StateT MatchState IO
 playMatch :: MatchTextureSet -> Font -> (Swos.SWOSTeam, TeamOwner) -> (Swos.SWOSTeam, TeamOwner) -> IO ()
 playMatch texs _ (ht, _) (at, _) = do
   let psize = (68, 105)
-      contr = Just (5, True)
+      contr = Nothing
   plist <- liftIO $ defineNewList Compile (drawPitch (pitchtexture texs) (16, 16) psize)
   evalStateT runMatch (initMatchState plist psize (20, 40) texs (ht, at) contr)
   putStrLn "Match played! Yay!"
