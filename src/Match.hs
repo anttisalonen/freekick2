@@ -458,6 +458,7 @@ updateBallPosition = do
   sModBall $ modBallposition (*+* ((ballvelocity (ball s)) *** (fromIntegral frameTime / 1000)))
   collCheckBall
   gravitateBall
+  slowDownBall
 
 collCheckBall :: Match ()
 collCheckBall = do
@@ -479,6 +480,17 @@ gravitateBall = do
     else
       when (abs zvel < 0.1) $ 
         sModBall $ modBallvelocity $ setZ 0
+
+slowDownBall :: Match ()
+slowDownBall = do
+  s <- State.get
+  let zv = getZ $ ballposition $ ball s
+  let zvel = getZ $ ballvelocity $ ball s
+  if zv > 0.01
+    then  -- air viscosity
+      sModBall $ modBallvelocity $ (*** (1 - (0.1 * (fromIntegral frameTime / 1000))))
+    else  -- rolling friction
+      sModBall $ modBallvelocity $ (*** (1 - (0.1 * (fromIntegral frameTime / 1000))))
 
 runMatch :: Match ()
 runMatch = do
