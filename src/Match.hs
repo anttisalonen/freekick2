@@ -251,16 +251,12 @@ goto (x, y) pl = do
       c              = playerid pl
   if abs diffx < 1 && abs diffy < 1
     then return ()
-    else 
-      if abs diffx > abs diffy
-        then do
-          if diffx > 0
-            then modify $ modPlayer c $ modPlposition (goRight (-plspeed))
-            else modify $ modPlayer c $ modPlposition (goRight (plspeed))
-        else do
-          if diffy > 0
-            then modify $ modPlayer c $ modPlposition (goUp (-plspeed))
-            else modify $ modPlayer c $ modPlposition (goUp (plspeed))
+    else do
+      let ang = atan2 diffy diffx
+          xvel = cos ang * plspeed
+          yvel = sin ang * plspeed
+      modify $ modPlayer c $ modPlposition (goRight (-xvel))
+      modify $ modPlayer c $ modPlposition (goUp (-yvel))
 
 doAI :: Match ()
 doAI = do
