@@ -455,42 +455,42 @@ handleActions = do
 updateBallPosition :: Match ()
 updateBallPosition = do
   s <- State.get
+  let dt = fromIntegral frameTime / 1000
   sModBall $ modBallposition (*+* ((ballvelocity (ball s)) *** (fromIntegral frameTime / 1000)))
-  collCheckBall
-  gravitateBall
-  slowDownBall
+  sModBall $ collCheckBall
+  sModBall $ gravitateBall dt
+  sModBall $ slowDownBall dt
 
-collCheckBall :: Match ()
-collCheckBall = do
-  s <- State.get
-  let zv = getZ (ballposition (ball s))
-  when (zv < 0) $ do
-    sModBall $ modBallposition $ addZ (2 * (-zv))
-    let zvel = getZ $ ballvelocity $ ball s
-    sModBall $ modBallvelocity $ addZ (2 * (-zvel))
+collCheckBall :: Ball -> Ball
+collCheckBall b =
+  let zv = getZ (ballposition b)
+      zvel = getZ $ ballvelocity b
+  in if zv < 0
+       then modBallposition (addZ (2 * (-zv))) (modBallvelocity (addZ (2 * (-zvel))) b)
+     else
+       b
 
-gravitateBall :: Match ()
-gravitateBall = do
-  s <- State.get
-  let zv = getZ $ ballposition $ ball s
-  let zvel = getZ $ ballvelocity $ ball s
-  if (zv > 0.01)
-    then 
-      sModBall $ modBallvelocity $ addZ (-9.81 * (fromIntegral frameTime / 1000))
-    else
-      when (abs zvel < 0.1) $ 
-        sModBall $ modBallvelocity $ setZ 0
+gravitateBall :: Float -> Ball -> Ball
+gravitateBall dt b = 
+  let zv = getZ $ ballposition $ b
+      zvel = getZ $ ballvelocity $ b
+  in if (zv > 0.01)
+       then 
+         modBallvelocity (addZ (-9.81 * dt)) b
+       else
+         if (abs zvel < 0.1) 
+           then modBallvelocity (setZ 0) b
+           else b
 
-slowDownBall :: Match ()
-slowDownBall = do
-  s <- State.get
-  let zv = getZ $ ballposition $ ball s
-  let zvel = getZ $ ballvelocity $ ball s
-  if zv > 0.01
-    then  -- air viscosity
-      sModBall $ modBallvelocity $ (*** (1 - (0.1 * (fromIntegral frameTime / 1000))))
-    else  -- rolling friction
-      sModBall $ modBallvelocity $ (*** (1 - (0.1 * (fromIntegral frameTime / 1000))))
+slowDownBall :: Float -> Ball -> Ball
+slowDownBall dt b =
+  let zv = getZ $ ballposition $ b
+      zvel = getZ $ ballvelocity $ b
+  in if zv > 0.01
+       then  -- air viscosity
+         modBallvelocity (*** (1 - (0.1 * dt))) b
+       else  -- rolling friction
+         modBallvelocity (*** (1 - (0.1 * dt))) b
 
 runMatch :: Match ()
 runMatch = do
