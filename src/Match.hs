@@ -263,8 +263,8 @@ goto (x, y) pl = do
   let (curx,  cury)  = plposition pl
       (diffx, diffy) = (curx - x, cury - y)
       c              = playerid pl
-  if abs diffx < 1 && abs diffy < 1
-    then return ()
+  if abs diffx < plspeed && abs diffy < plspeed
+    then modify $ modPlayer c $ modPlposition (const (x, y))
     else do
       let ang = atan2 diffy diffx
           xvel = cos ang * plspeed
@@ -272,12 +272,36 @@ goto (x, y) pl = do
       modify $ modPlayer c $ modPlposition (goRight (-xvel))
       modify $ modPlayer c $ modPlposition (goUp (-yvel))
 
+kickoffer :: MatchState -> PlayerID
+kickoffer m =
+  let forws = filter (\p -> plpos p == Attacker) (M.elems $ homeplayers m)
+      mids = filter (\p -> plpos p == Midfielder) (M.elems $ homeplayers m)
+      defs = filter (\p -> plpos p == Defender) (M.elems $ homeplayers m)
+  in playerid $ head (forws ++ mids ++ defs)
+
+kickoffAssister :: MatchState -> PlayerID
+kickoffAssister m =
+  let forws = filter (\p -> plpos p == Attacker) (M.elems $ homeplayers m)
+      mids = filter (\p -> plpos p == Midfielder) (M.elems $ homeplayers m)
+      defs = filter (\p -> plpos p == Defender) (M.elems $ homeplayers m)
+  in playerid $ head $ tail (forws ++ mids ++ defs)
+
+shouldDoKickoff :: MatchState -> Player -> Bool
+shouldDoKickoff m pl = kickoffer m == playerid pl
+  
+shouldAssistKickoff :: MatchState -> Player -> Bool
+shouldAssistKickoff m pl = kickoffAssister m == playerid pl
+
 doAI :: Match ()
 doAI = do
   s <- State.get
   forM_ (M.elems (awayplayers s) ++ (M.elems (homeplayers s))) $ \pl -> do
     when (aiControlled s (playerid pl)) $ do
-      goto (formationPositionAbs s pl) pl
+      if shouldDoKickoff s pl
+        then goto (relToAbs s (0.5, 0.5)) pl
+        else if shouldAssistKickoff s pl
+               then goto (relToAbs s (0.52, 0.5)) pl
+               else goto (formationPositionAbs s pl) pl
 
 runMatch :: Match ()
 runMatch = do
