@@ -4,6 +4,7 @@ where
 import Graphics.Rendering.OpenGL as OpenGL
 
 import Drawing
+import FVector
 
 drawRect :: Rectangle -> Float -> IO ()
 drawRect r d' = preservingMatrix $ do

@@ -21,6 +21,8 @@ import SDLUtils
 import Drawing
 import DrawPitch
 import DeriveMod
+import Ball
+import FVector
 
 data TeamOwner = HumanOwner | AIOwner
 
@@ -36,40 +38,6 @@ data PlPosition = Goalkeeper | Defender | Midfielder | Attacker
   deriving (Eq)
 
 type PlayerID = (Int, Bool)
-
-type FVector3 = (Float, Float, Float)
-
-getX, getY, getZ :: FVector3 -> Float
-getX (x, _, _) = x
-getY (_, y, _) = y
-getZ (_, _, z) = z
-
-addX, addY, addZ :: Float -> FVector3 -> FVector3
-addX v (x, y, z) = (v + x, y, z)
-addY v (x, y, z) = (x, v + y, z)
-addZ v (x, y, z) = (x, y, v + z)
-
-setX, setY, setZ :: Float -> FVector3 -> FVector3
-setX v (_, y, z) = (v, y, z)
-setY v (x, _, z) = (x, v, z)
-setZ v (x, y, _) = (x, y, v)
-
-(*+*) :: FVector3 -> FVector3 -> FVector3
-(x1, y1, z1) *+* (x2, y2, z2) = (x1 + x2, y1 + y2, z1 + z2)
-
-(***) :: FVector3 -> Float -> FVector3
-(x1, y1, z1) *** s = (x1 * s, y1 * s, z1 * s)
-
-to2D :: FVector3 -> FRange
-to2D (x, y, _) = (x, y)
-
-data Ball = Ball {
-    ballposition :: FVector3
-  , ballvelocity :: FVector3
-  , ballimage    :: ImageInfo
-  , ballposz     :: Float
-  }
-$(deriveMods ''Ball)
 
 data Player = Player {
     plposition :: FRange
@@ -133,7 +101,7 @@ initMatchState :: DisplayList
                -> Maybe PlayerID -> MatchState
 initMatchState plist psize cpos pltexs (ht, at) c = 
   MatchState plist [] psize cpos hps aps hf af c BeforeKickoff 
-             (initialBall psize (ballimginfo pltexs))
+             (initialBall onPitchZ psize (ballimginfo pltexs))
              [] Nothing
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
@@ -142,12 +110,6 @@ initMatchState plist psize cpos pltexs (ht, at) c =
 
 onPitchZ :: Float
 onPitchZ = 1
-
-nullFVector3 :: FVector3
-nullFVector3 = (0, 0, 0)
-
-initialBall :: FRange -> ImageInfo -> Ball
-initialBall (px, py) img = Ball (px / 2, py / 2, 0) nullFVector3 img onPitchZ
 
 playerHome :: Player -> Bool
 playerHome = snd . playerid
@@ -460,37 +422,6 @@ updateBallPosition = do
   sModBall $ collCheckBall
   sModBall $ gravitateBall dt
   sModBall $ slowDownBall dt
-
-collCheckBall :: Ball -> Ball
-collCheckBall b =
-  let zv = getZ (ballposition b)
-      zvel = getZ $ ballvelocity b
-  in if zv < 0
-       then modBallposition (addZ (2 * (-zv))) (modBallvelocity (addZ (2 * (-zvel))) b)
-     else
-       b
-
-gravitateBall :: Float -> Ball -> Ball
-gravitateBall dt b = 
-  let zv = getZ $ ballposition $ b
-      zvel = getZ $ ballvelocity $ b
-  in if (zv > 0.01)
-       then 
-         modBallvelocity (addZ (-9.81 * dt)) b
-       else
-         if (abs zvel < 0.1) 
-           then modBallvelocity (setZ 0) b
-           else b
-
-slowDownBall :: Float -> Ball -> Ball
-slowDownBall dt b =
-  let zv = getZ $ ballposition $ b
-      zvel = getZ $ ballvelocity $ b
-  in if zv > 0.01
-       then  -- air viscosity
-         modBallvelocity (*** (1 - (0.1 * dt))) b
-       else  -- rolling friction
-         modBallvelocity (*** (1 - (0.1 * dt))) b
 
 runMatch :: Match ()
 runMatch = do

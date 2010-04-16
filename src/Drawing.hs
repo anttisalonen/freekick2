@@ -13,12 +13,12 @@ import Graphics.Rendering.FTGL as FTGL
 import Graphics.Rendering.OpenGL as OpenGL
 import Codec.Image.PNG
 
+import FVector
+
 data ImageInfo = ImageInfo {
     imgtexture :: TextureObject
   , imgsize    :: FRange
   }
-
-type FRange = (Float, Float)
 
 type Rectangle = ((Float, Float), (Float, Float))
 
