@@ -99,7 +99,26 @@ mkGoalkeeperFormation True  pls = M.fromList (zip (map playerNumber pls) (repeat
 mkGoalkeeperFormation False pls = M.fromList (zip (map playerNumber pls) (repeat (0.5, 1)))
 
 mkDefenderFormation :: Bool -> [Player] -> Formation
-mkDefenderFormation = mkGoalkeeperFormation
+mkDefenderFormation home pls =
+  let numpls = length pls
+      hasscentre = numpls `mod` 2 == 1
+      pairpls = if hasscentre then drop 1 pls else pls
+      cplrpos = (0.5, 0.2)
+      pairposs = case numpls of
+                   1 -> []
+                   2 -> [(0.3, 0.2), (0.7, 0.2)]
+                   3 -> [(0.25, 0.25), (0.75, 0.25)]
+                   4 -> [(0.2, 0.25), (0.8, 0.25), (0.4, 0.2), (0.6, 0.2)]
+                   5 -> [(0.2, 0.25), (0.8, 0.25), (0.4, 0.2), (0.6, 0.2)]
+                   _ -> repeat cplrpos
+      plrposs = if hasscentre
+                  then cplrpos : take (numpls - 1) pairposs
+                  else take numpls pairposs
+      plrposs' = if home then plrposs else map flipSide plrposs
+  in M.fromList (zip (map playerNumber pls) (plrposs'))
+
+flipSide :: FRange -> FRange
+flipSide (x, y) = (1 - x, 1 - y)
 
 mkMidfielderFormation :: Bool -> [Player] -> Formation
 mkMidfielderFormation = mkGoalkeeperFormation
