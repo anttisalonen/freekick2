@@ -30,7 +30,7 @@ type Formation = M.IntMap FRange
 
 data BallPlay = BeforeKickoff | WaitForKickoff Int | DoKickoff | InPlay
 
-data Action = BallKicked
+data MatchEvent = BallKicked
 
 data MatchState = MatchState {
     pitchlist      :: DisplayList
@@ -44,7 +44,7 @@ data MatchState = MatchState {
   , controlledpl   :: Maybe PlayerID
   , ballplay       :: BallPlay
   , ball           :: Ball
-  , pendingactions :: [Action]
+  , pendingevents  :: [MatchEvent]
   , lasttouch      :: Maybe PlayerID
   }
 $(deriveMods ''MatchState)

@@ -269,7 +269,7 @@ kick vec p = do
     then return ()
     else do
       sModBall $ modBallvelocity $ const vec
-      sModPendingactions $ (BallKicked:)
+      sModPendingevents $ (BallKicked:)
       sModLasttouch $ const $ Just $ playerid p
 
 inKickDistance :: MatchState -> Player -> Bool
@@ -391,23 +391,23 @@ updateBallPlay = do
         then sModBallplay (const DoKickoff)
         else sModBallplay (const $ WaitForKickoff (timer - fromIntegral frameTime))
     DoKickoff -> do
-      return () -- updated by handleAction BallKicked
+      return () -- updated by handleEvent BallKicked
     InPlay -> do
       return () -- TODO
 
-handleAction :: Action -> Match ()
-handleAction BallKicked = do
+handleEvent :: MatchEvent -> Match ()
+handleEvent BallKicked = do
   s <- State.get
   case ballplay s of
     DoKickoff -> do
       sModBallplay $ const InPlay
     _ -> return ()
 
-handleActions :: Match ()
-handleActions = do
+handleEvents :: Match ()
+handleEvents = do
   s <- State.get
-  mapM_ handleAction (pendingactions s)
-  sModPendingactions $ const []
+  mapM_ handleEvent (pendingevents s)
+  sModPendingevents $ const []
 
 updateBallPosition :: Match ()
 updateBallPosition = do
@@ -427,7 +427,7 @@ runMatch = do
     else do
       drawMatch
       doAI
-      handleActions
+      handleEvents
       updateBallPosition
       updateBallPlay
       t2 <- liftIO $ getCPUTime
