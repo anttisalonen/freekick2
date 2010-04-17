@@ -47,7 +47,7 @@ shootPositionValue _ home pos =
 
 beforeKickoffAI :: MatchState -> [PlAction]
 beforeKickoffAI m = 
-  forAIPlayers m $ \pl -> do
+  forAIPlayers m $ \pl ->
     if shouldDoKickoff m pl
       then (pl, Goto (relToAbs m (0.5, 0.5)))
       else if shouldAssistKickoff m pl
@@ -63,15 +63,47 @@ doAI m =
     BeforeKickoff    -> beforeKickoffAI m
     WaitForKickoff _ -> beforeKickoffAI m
     DoKickoff -> 
-      forAIPlayers m $ \pl -> do
-          if shouldDoKickoff m pl
-            then kickoff m pl
-            else (pl, Idle)
+      forAIPlayers m $ \pl ->
+        if shouldDoKickoff m pl
+          then kickoff m pl
+          else (pl, Idle)
     InPlay -> 
-      forAIPlayers m $ \pl -> do
-          if inKickDistance m pl && kicktimer pl <= 0
-            then onBallAI m pl
-            else offBallAI m pl
+      forAIPlayers m $ \pl ->
+        if inKickDistance m pl && kicktimer pl <= 0
+          then onBallAI m pl
+          else offBallAI m pl
+    OutOfPlayWaiting _ _ -> []
+    OutOfPlay _ r        -> beforeRestartAI m r
+    RestartPlay r        ->
+      forAIPlayers m $ \pl ->
+        if shouldRestart m r pl
+          then restart m r pl
+          else restartLookout m r pl
+
+shouldRestart :: MatchState -> Restart -> Player -> Bool
+shouldRestart m (ThrowIn p) pl =
+  pl == nearestOPToPointwoGK m p pl
+shouldRestart m (CornerKick p) pl =
+  pl == nearestOPToPointwoGK m p pl
+shouldRestart _ (GoalKick _) pl =
+  plpos pl == Goalkeeper
+
+beforeRestartAI :: MatchState -> Restart -> [PlAction]
+beforeRestartAI m r =
+  forAIPlayers m $ \pl ->
+    if shouldRestart m r pl
+      then (pl, Goto (ballCoords m))
+      else restartLookout m r pl
+
+restartLookout :: MatchState -> Restart -> Player -> PlAction
+restartLookout m _ pl = 
+  (pl, Goto (formationPositionAbs m pl)) -- TODO
+
+restart :: MatchState -> Restart -> Player -> PlAction
+restart m _ pl =
+  if not (inKickDistance m pl)
+    then (pl, Goto (to2D (ballposition (ball m))))
+    else onBallAI m pl  -- TODO: disable dribble here
 
 onBallAI :: MatchState -> Player -> PlAction
 onBallAI m pl = 

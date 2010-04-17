@@ -16,7 +16,22 @@ import Player
 type PlayerMap = M.IntMap Player
 type Formation = M.IntMap FRange
 
-data BallPlay = BeforeKickoff | WaitForKickoff Int | DoKickoff | InPlay
+data Restart = ThrowIn FRange
+             | GoalKick FRange
+             | CornerKick FRange
+
+getRestartPoint :: Restart -> FRange
+getRestartPoint (ThrowIn r) = r
+getRestartPoint (GoalKick r) = r
+getRestartPoint (CornerKick r) = r
+
+data BallPlay = BeforeKickoff 
+              | WaitForKickoff Int 
+              | DoKickoff 
+              | InPlay
+              | OutOfPlayWaiting Int Restart -- ai does nothing
+              | OutOfPlay Int Restart        -- ai moves to positions
+              | RestartPlay Restart          -- ai restarts play
 
 data MatchEvent = BallKicked
 

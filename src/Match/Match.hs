@@ -156,13 +156,62 @@ updateBallPlay = do
     DoKickoff -> do
       return () -- updated by handleMatchEvent BallKicked
     InPlay -> do
-      return () -- TODO
+      let (bx, by) = to2D $ ballposition $ ball s
+          (px, py) = pitchsize s
+      when (bx < 0) $ do -- throwin from the left
+        let restartpos = (0, by)
+        sModBallplay $ const $ OutOfPlayWaiting 2000 (ThrowIn restartpos)
+      when (bx > py) $ do -- throwin from the right
+        let restartpos = (py, by)
+        sModBallplay $ const $ OutOfPlayWaiting 2000 (ThrowIn restartpos)
+      when (by < 0) $ do  -- corner kick or goal kick on bottom half
+        if not (homeRestarts s) -- corner kick
+          then do
+            let restartpos =
+                  if bx < px / 2
+                    then (0, 0)
+                    else (px, 0)
+            sModBallplay $ const $ OutOfPlayWaiting 2000 (CornerKick restartpos)
+          else do -- goal kick
+            let restartpos =
+                  if bx < px / 2
+                    then (px / 2 - 9.15, 5.5)
+                    else (px / 2 + 9.15, 5.5)
+            sModBallplay $ const $ OutOfPlayWaiting 2000 (GoalKick restartpos)
+      when (by > py) $ do  -- corner kick of goal kick on lower half
+        if not (homeRestarts s) -- goal kick
+          then do
+            let restartpos =
+                  if bx < px / 2
+                    then (px / 2 - 9.15, py - 5.5)
+                    else (px / 2 + 9.15, py + 5.5)
+            sModBallplay $ const $ OutOfPlayWaiting 2000 (GoalKick restartpos)
+          else do -- corner kick
+            let restartpos =
+                  if bx < px / 2
+                    then (0, py)
+                    else (px, py)
+            sModBallplay $ const $ OutOfPlayWaiting 2000 (CornerKick restartpos)
+    OutOfPlayWaiting timer restart -> 
+      if timer > 0
+        then sModBallplay $ const $ OutOfPlayWaiting (timer - fromIntegral frameTime) restart
+        else sModBallplay $ const $ OutOfPlay 2000 restart
+    OutOfPlay timer restart ->
+      if timer > 0
+        then do
+          when (timer > 1000) $ sModBall $ modBallposition $ const $ to3D (getRestartPoint restart) 0
+          sModBallplay $ const $ OutOfPlay (timer - fromIntegral frameTime) restart
+        else sModBallplay $ const $ RestartPlay restart
+    RestartPlay _ -> do
+      return () -- updated by handleMatchEvent BallKicked
 
 handleMatchEvent :: MatchEvent -> Match ()
 handleMatchEvent BallKicked = do
   s <- State.get
   case ballplay s of
     DoKickoff -> do
+      sModBallplay $ const InPlay
+    RestartPlay _ -> do
       sModBallplay $ const InPlay
     _ -> return ()
 
