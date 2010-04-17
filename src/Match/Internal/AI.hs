@@ -26,7 +26,7 @@ pass receiver passer =
 
 bestPassTarget :: MatchState -> Player -> (Float, Player)
 bestPassTarget m pl = 
-  head $ sortBy (flipCompare `on` fst) $ map (passValue m pl) (ownPlayers m pl)
+  head $ filter ((/= pl) . snd) $ sortBy (flipCompare `on` fst) $ map (passValue m pl) (ownPlayers m pl)
 
 flipCompare a b
   | a < b     = GT
