@@ -21,7 +21,7 @@ import Graphics.Rendering.FTGL as FTGL
 import SDLUtils
 import Swos
 import Tree
-import Match
+import Match.Match
 import Drawing
 
 import Paths_freekick2

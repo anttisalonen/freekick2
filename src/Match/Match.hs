@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Match(playMatch, TeamOwner(..),
+module Match.Match(playMatch, TeamOwner(..),
   MatchTextureSet(..))
 where
 
@@ -26,6 +26,8 @@ import FVector
 import Player
 import SWOSShell
 
+import Match.Internal.MatchState
+
 data TeamOwner = HumanOwner | AIOwner
 
 data MatchTextureSet = MatchTextureSet {
@@ -35,36 +37,6 @@ data MatchTextureSet = MatchTextureSet {
   , ballimginfo       :: ImageInfo
   , humandrawsize     :: FRange
   }
-
-type PlayerMap = M.IntMap Player
-type Formation = M.IntMap FRange
-
-data BallPlay = BeforeKickoff | WaitForKickoff Int | DoKickoff | InPlay
-
-data Action = BallKicked
-
-data MatchState = MatchState {
-    pitchlist      :: DisplayList
-  , currkeys       :: [SDLKey]
-  , pitchsize      :: (Float, Float)
-  , campos         :: (Float, Float)
-  , homeplayers    :: PlayerMap
-  , awayplayers    :: PlayerMap
-  , homeformation  :: Formation
-  , awayformation  :: Formation
-  , controlledpl   :: Maybe PlayerID
-  , ballplay       :: BallPlay
-  , ball           :: Ball
-  , pendingactions :: [Action]
-  , lasttouch      :: Maybe PlayerID
-  }
-$(deriveMods ''MatchState)
-
-modPlayer :: PlayerID -> (Player -> Player) -> MatchState -> MatchState
-modPlayer (pln, True)  f = modHomeplayers (M.adjust f pln)
-modPlayer (pln, False) f = modAwayplayers (M.adjust f pln)
-
-type Match = StateT MatchState IO
 
 playMatch :: MatchTextureSet -> Font -> (Swos.SWOSTeam, TeamOwner) -> (Swos.SWOSTeam, TeamOwner) -> IO ()
 playMatch texs _ (ht, _) (at, _) = do
