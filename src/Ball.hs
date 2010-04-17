@@ -18,11 +18,16 @@ $(deriveMods ''Ball)
 
 instance Sprite Ball where
   getTexture     = imgtexture . ballimage
-  getRectangle b = (to2D (ballposition b), imgsize (ballimage b))
+  getRectangle b = ballTexRectangle b
   getDepth b     = topDownDepth (to2D $ ballposition b) (ballposz b)
 
 initialBall :: Float -> FRange -> ImageInfo -> Ball
 initialBall zv (px, py) img = Ball (px / 2, py / 2, 0) nullFVector3 img zv
+
+ballTexRectangle :: Ball -> Rectangle
+ballTexRectangle b = ((x - s / 2, y - t / 2), (s, t))
+      where (x, y) = to2D (ballposition b)
+            (s, t) = imgsize $ ballimage b
 
 collCheckBall :: Ball -> Ball
 collCheckBall b =
