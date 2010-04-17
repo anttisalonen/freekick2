@@ -14,11 +14,12 @@ data PlPosition = Goalkeeper | Defender | Midfielder | Attacker
 type PlayerID = (Int, Bool)
 
 data Player = Player {
-    plposition :: FRange
-  , plimage    :: ImageInfo
-  , plposz     :: Float
-  , playerid   :: PlayerID
-  , plpos      :: PlPosition
+    plposition  :: FRange
+  , plimage     :: ImageInfo
+  , plposz      :: Float
+  , playerid    :: PlayerID
+  , plpos       :: PlPosition
+  , kicktimer   :: Int
   }
 $(deriveMods ''Player)
 

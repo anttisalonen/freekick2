@@ -17,7 +17,7 @@ swosPositionToPosition p
 
 swosPlayerToPlayer :: Float -> Bool -> TextureObject -> TextureObject -> FRange -> FRange -> Swos.SWOSPlayer -> Player
 swosPlayerToPlayer inz home htex atex hsize (px, py) p = 
-  Player (px - 10, py / 2) (ImageInfo tex hsize) inz ((Swos.plnumber p), home) npos
+  Player (px - 10, py / 2) (ImageInfo tex hsize) inz ((Swos.plnumber p), home) npos 0
     where tex = if home then htex else atex
           npos = swosPositionToPosition (Swos.plposition p)
 
