@@ -200,18 +200,18 @@ updateBallPlay = do
       if timer > 0
         then do
           when (timer > 1000) $ sModBall $ modBallposition $ const $ to3D (getRestartPoint restart) 0
+          sModBall $ modBallvelocity $ const nullFVector3
           sModBallplay $ const $ OutOfPlay (timer - fromIntegral frameTime) restart
         else sModBallplay $ const $ RestartPlay restart
     RestartPlay _ -> do
-      return () -- updated by handleMatchEvent BallKicked
+      when ((to2D $ ballposition (ball s)) `inside2s` ((0, 0), (pitchsize s))) $
+        sModBallplay $ const InPlay
 
 handleMatchEvent :: MatchEvent -> Match ()
 handleMatchEvent BallKicked = do
   s <- State.get
   case ballplay s of
     DoKickoff -> do
-      sModBallplay $ const InPlay
-    RestartPlay _ -> do
       sModBallplay $ const InPlay
     _ -> return ()
 
