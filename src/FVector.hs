@@ -35,6 +35,24 @@ to2D (x, y, _) = (x, y)
 nullFVector3 :: FVector3
 nullFVector3 = (0, 0, 0)
 
+len3squared :: FVector3 -> Float
+len3squared (x, y, z) = x **2 + y ** 2 + z ** 2
+
+len3 :: FVector3 -> Float
+len3 = sqrt . len3squared
+
+normalize3 :: FVector3 -> FVector3
+normalize3 v@(x, y, z) =
+  let l = len3 v
+  in (x / l, y / l, z / l)
+
+capLen3 :: Float -> FVector3 -> FVector3
+capLen3 n v =
+  let l = len3 v
+  in if l > n
+       then normalize3 v *** n
+       else v
+
 dist2squared :: FRange -> FRange -> Float
 dist2squared (x1, y1) (x2, y2) = ((x2 - x1)**2) + ((y2 - y1)**2)
 
