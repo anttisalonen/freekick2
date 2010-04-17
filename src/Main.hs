@@ -319,7 +319,7 @@ startMatch f1 f2 ht ho at ao _ = do
   pltex2 <- liftIO $ loadDataTexture (Just acf) "share/player1.png" (Just 0) (Just 32)
   balltex <- liftIO $ loadDataTexture Nothing "share/ball1.png" (Just 0) (Just 8)
   let ballimg = ImageInfo balltex (0.4, 0.4)
-  liftIO $ playMatch (MatchTextureSet ptex pltex1 pltex2 ballimg (2, 2)) f2 (ht, ho) (at, ao)
+  liftIO $ playMatch (MatchTextureSet ptex pltex1 pltex2 ballimg (2, 2)) f1 f2 (ht, ho) (at, ao)
   return False
 
 continueToMatch :: MenuBlock ()

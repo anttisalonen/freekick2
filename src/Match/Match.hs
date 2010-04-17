@@ -11,6 +11,7 @@ import qualified Data.IntMap as M
 import System.CPUTime
 import Data.Word
 import Data.Function
+import Text.Printf
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -41,12 +42,12 @@ data MatchTextureSet = MatchTextureSet {
   , humandrawsize     :: FRange
   }
 
-playMatch :: MatchTextureSet -> Font -> (Swos.SWOSTeam, TeamOwner) -> (Swos.SWOSTeam, TeamOwner) -> IO ()
-playMatch texs _ (ht, _) (at, _) = do
+playMatch :: MatchTextureSet -> Font -> Font -> (Swos.SWOSTeam, TeamOwner) -> (Swos.SWOSTeam, TeamOwner) -> IO ()
+playMatch texs f f2 (ht, _) (at, _) = do
   let psize = (68, 105)
       contr = Nothing
   plist <- liftIO $ defineNewList Compile (drawPitch (pitchtexture texs) (16, 16) psize)
-  evalStateT runMatch (initMatchState plist psize (20, 40) texs (ht, at) contr)
+  evalStateT runMatch (initMatchState plist psize (20, 40) texs (ht, at) contr f f2 (Swos.teamname ht) (Swos.teamname at))
   putStrLn "Match played! Yay!"
   (w, h) <- liftIO $ getWindowSize
   setCamera ((0, 0), (w, h))
@@ -55,11 +56,14 @@ initMatchState :: DisplayList
                -> FRange -> FRange 
                -> MatchTextureSet 
                -> (Swos.SWOSTeam, Swos.SWOSTeam) 
-               -> Maybe PlayerID -> MatchState
-initMatchState plist psize cpos pltexs (ht, at) c = 
+               -> Maybe PlayerID 
+               -> Font -> Font
+               -> String -> String
+               -> MatchState
+initMatchState plist psize cpos pltexs (ht, at) c f1 f2 tname1 tname2 = 
   MatchState plist [] psize cpos hps aps hf af c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs))
-             [] Nothing
+             [] Nothing 0 0 f1 f2 tname1 tname2
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps
@@ -127,14 +131,27 @@ drawMatch :: Match ()
 drawMatch = do
   s <- State.get
   (w, h) <- liftIO $ getWindowSize
+  let text = printf "%16s %d - %d %-16s" (hometeamname s) (homegoals s) (awaygoals s) (awayteamname s)
+      coords = (0, 50)
   liftIO $ do
     clear [ColorBuffer, DepthBuffer]
     let (bx, by) = to2D (ballposition $ ball s)
-    let cpos = (bx - (fromIntegral w / (2 * camZoomLevel)), by - (fromIntegral h / (2 * camZoomLevel)))
+        cpos = (bx - (fromIntegral w / (2 * camZoomLevel)), by - (fromIntegral h / (2 * camZoomLevel)))
     setCamera' (cpos, (fromIntegral (w `div` camZoomLevel), fromIntegral (h `div` camZoomLevel)))
     callList (pitchlist s)
     mapM_ drawSprite $ sortBy (compare `on` getDepth) (SB (ball s) : map SB (M.elems (homeplayers s) ++ M.elems (awayplayers s)))
+    when (pausedBallplay s) $ writeText w h (matchfont1 s) text coords
     glSwapBuffers
+
+writeText :: Int -> Int -> Font -> String -> FRange -> IO ()
+writeText w h f str (x, y) = do
+  loadIdentity
+  setCamera ((0, 0), (w, h))
+  color $ Color3 0 0 (0 :: GLfloat)
+  translate $ Vector3 (realToFrac x) (realToFrac y) (2 :: GLfloat)
+  textlen <- getFontAdvance f str
+  translate $ Vector3 (fromIntegral w / 2 - realToFrac textlen / 2) 0 (0 :: GLfloat)
+  renderFont f str FTGL.Front
 
 playerOnHisSide :: MatchState -> Player -> Bool
 playerOnHisSide m p =
@@ -145,11 +162,14 @@ playerOnHisSide m p =
 updateBallPlay :: Match ()
 updateBallPlay = do
   s <- State.get
+  let (px, py) = pitchsize s
   case ballplay s of
     BeforeKickoff -> do
       when (all (playerOnHisSide s) (allPlayers s)) $
         sModBallplay (const $ WaitForKickoff 2000)
     WaitForKickoff timer -> do
+      when (timer > 1000) $ sModBall $ modBallposition $ const $ to3D (px / 2, py / 2) 0
+      sModBall $ modBallvelocity $ const nullFVector3
       if timer < 0
         then sModBallplay (const DoKickoff)
         else sModBallplay (const $ WaitForKickoff (timer - fromIntegral frameTime))
@@ -157,7 +177,6 @@ updateBallPlay = do
       return () -- updated by handleMatchEvent BallKicked
     InPlay -> do
       let (bx, by) = to2D $ ballposition $ ball s
-          (px, py) = pitchsize s
       when (bx < 0) $ do -- throwin from the left
         let restartpos = (0, by)
         sModBallplay $ const $ OutOfPlayWaiting 2000 (ThrowIn restartpos)
@@ -165,33 +184,45 @@ updateBallPlay = do
         let restartpos = (py, by)
         sModBallplay $ const $ OutOfPlayWaiting 2000 (ThrowIn restartpos)
       when (by < 0) $ do  -- corner kick or goal kick on bottom half
-        if not (homeRestarts s) -- corner kick
+        if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 -- goal
           then do
-            let restartpos =
-                  if bx < px / 2
-                    then (0, 0)
-                    else (px, 0)
-            sModBallplay $ const $ OutOfPlayWaiting 2000 (CornerKick restartpos)
-          else do -- goal kick
-            let restartpos =
-                  if bx < px / 2
-                    then (px / 2 - 9.15, 5.5)
-                    else (px / 2 + 9.15, 5.5)
-            sModBallplay $ const $ OutOfPlayWaiting 2000 (GoalKick restartpos)
+            let restartpos = (px / 2, py / 2)
+            sModAwaygoals succ
+            sModBallplay $ const $ BeforeKickoff
+          else
+            if not (homeRestarts s) -- corner kick
+              then do
+                let restartpos =
+                      if bx < px / 2
+                        then (0, 0)
+                        else (px, 0)
+                sModBallplay $ const $ OutOfPlayWaiting 2000 (CornerKick restartpos)
+              else do -- goal kick
+                let restartpos =
+                      if bx < px / 2
+                        then (px / 2 - 9.15, 5.5)
+                        else (px / 2 + 9.15, 5.5)
+                sModBallplay $ const $ OutOfPlayWaiting 2000 (GoalKick restartpos)
       when (by > py) $ do  -- corner kick of goal kick on lower half
-        if not (homeRestarts s) -- goal kick
+        if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 -- goal
           then do
-            let restartpos =
-                  if bx < px / 2
-                    then (px / 2 - 9.15, py - 5.5)
-                    else (px / 2 + 9.15, py + 5.5)
-            sModBallplay $ const $ OutOfPlayWaiting 2000 (GoalKick restartpos)
-          else do -- corner kick
-            let restartpos =
-                  if bx < px / 2
-                    then (0, py)
-                    else (px, py)
-            sModBallplay $ const $ OutOfPlayWaiting 2000 (CornerKick restartpos)
+            let restartpos = (px / 2, py / 2)
+            sModHomegoals succ
+            sModBallplay $ const $ BeforeKickoff
+          else
+            if not (homeRestarts s) -- goal kick
+              then do
+                let restartpos =
+                      if bx < px / 2
+                        then (px / 2 - 9.15, py - 5.5)
+                        else (px / 2 + 9.15, py + 5.5)
+                sModBallplay $ const $ OutOfPlayWaiting 2000 (GoalKick restartpos)
+              else do -- corner kick
+                let restartpos =
+                      if bx < px / 2
+                        then (0, py)
+                        else (px, py)
+                sModBallplay $ const $ OutOfPlayWaiting 2000 (CornerKick restartpos)
     OutOfPlayWaiting timer restart -> 
       if timer > 0
         then sModBallplay $ const $ OutOfPlayWaiting (timer - fromIntegral frameTime) restart

@@ -7,6 +7,7 @@ import qualified Data.IntMap as M
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
+import Graphics.Rendering.FTGL as FTGL
 
 import DeriveMod
 import Ball
@@ -49,6 +50,12 @@ data MatchState = MatchState {
   , ball           :: Ball
   , pendingevents  :: [MatchEvent]
   , lasttouch      :: Maybe PlayerID
+  , homegoals      :: Int
+  , awaygoals      :: Int
+  , matchfont1     :: Font
+  , matchfont2     :: Font
+  , hometeamname   :: String
+  , awayteamname   :: String
   }
 $(deriveMods ''MatchState)
 
