@@ -15,7 +15,9 @@ import Match.Internal.Formation
 
 offBallAI :: MatchState -> Player -> PlAction
 offBallAI m pl = 
-  (pl, Goto (formationPositionAbs m pl))
+  if nearestOPToBall m pl == pl
+    then (pl, Goto (ballCoords m))
+    else (pl, Goto (formationPositionAbs m pl))
 
 pass :: Player -> Player -> PlAction
 pass receiver passer = 
