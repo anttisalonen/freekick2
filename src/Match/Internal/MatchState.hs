@@ -41,6 +41,17 @@ modPlayer :: PlayerID -> (Player -> Player) -> MatchState -> MatchState
 modPlayer (pln, True)  f = modHomeplayers (M.adjust f pln)
 modPlayer (pln, False) f = modAwayplayers (M.adjust f pln)
 
+modAllPlayers :: (Player -> Player) -> MatchState -> MatchState
+modAllPlayers f m = modHomeplayers (M.map f) (modAwayplayers (M.map f) m)
+
+sModAllPlayers ::
+     (Player -> Player) -> Match ()
+sModAllPlayers f = modify $ modAllPlayers f
+
+sModPlayer ::
+     PlayerID -> (Player -> Player) -> Match ()
+sModPlayer p f = modify $ modPlayer p f
+
 type Match = StateT MatchState IO
 
 
