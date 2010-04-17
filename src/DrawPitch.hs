@@ -62,8 +62,8 @@ drawPitch grtexobj grtiling psize@(px, py) = do
   drawRectBox ((px / 2 - 9.15,  0), (18.3,  5.5))  lw 0 -- goal area 1
   drawSpot (px / 2, 11) (lw * 2) 0 -- penalty spot 1
   draw2DArcAngled (px / 2, 11.1) 9.15 lw 0 (-54.63298, 109.26596) -- penalty arc 1
-  drawRectBox ((px / 2 - 20.16, py), (40.32, -16.5)) lw 0 -- penalty area 2
-  drawRectBox ((px / 2 - 9.15,  py), (18.3,  -5.5))  lw 0 -- goal area 2
+  drawRectBox ((px / 2 - 20.16, py - 16.5), (40.32, 16.5)) lw 0 -- penalty area 2
+  drawRectBox ((px / 2 - 9.15,  py - 5.5), (18.3,  5.5))  lw 0 -- goal area 2
   drawSpot (px / 2, py - 11) (lw * 2) 0 -- penalty spot 2
   draw2DArcAngled (px / 2, py - 11.2) 9.15 lw 0 (125.36702, 109.26596) -- penalty arc 2
   draw2DArcAngled (0, 0) 1 lw 0 (0, 90) -- corner line 1
