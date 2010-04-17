@@ -109,7 +109,7 @@ handleKeyEvents = do
   when (SDLK_RIGHT `elem` ks) $ sModCampos (goRight 1)
   case controlledpl s of
     Nothing -> return ()
-    Just c  -> do
+    Just c  -> do -- TODO: use goto instead
       when (SDLK_w `elem` ks) $ modify $ modPlayer c $ modPlposition (goUp plspeed)
       when (SDLK_s `elem` ks) $ modify $ modPlayer c $ modPlposition (goUp (-plspeed))
       when (SDLK_a `elem` ks) $ modify $ modPlayer c $ modPlposition (goRight (-plspeed))
@@ -149,22 +149,22 @@ updateBallPlay = do
         then sModBallplay (const DoKickoff)
         else sModBallplay (const $ WaitForKickoff (timer - fromIntegral frameTime))
     DoKickoff -> do
-      return () -- updated by handleEvent BallKicked
+      return () -- updated by handleMatchEvent BallKicked
     InPlay -> do
       return () -- TODO
 
-handleEvent :: MatchEvent -> Match ()
-handleEvent BallKicked = do
+handleMatchEvent :: MatchEvent -> Match ()
+handleMatchEvent BallKicked = do
   s <- State.get
   case ballplay s of
     DoKickoff -> do
       sModBallplay $ const InPlay
     _ -> return ()
 
-handleEvents :: Match ()
-handleEvents = do
+handleMatchEvents :: Match ()
+handleMatchEvents = do
   s <- State.get
-  mapM_ handleEvent (pendingevents s)
+  mapM_ handleMatchEvent (pendingevents s)
   sModPendingevents $ const []
 
 updateBallPosition :: Match ()
@@ -185,7 +185,7 @@ runMatch = do
     else do
       drawMatch
       doAI
-      handleEvents
+      handleMatchEvents
       updateBallPosition
       updateBallPlay
       t2 <- liftIO $ getCPUTime
