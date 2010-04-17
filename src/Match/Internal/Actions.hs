@@ -45,7 +45,7 @@ kick vec p = do
   if not (inKickDistance s p)
     then return ()
     else do
-      sModBall $ modBallvelocity $ const vec
+      sModBall $ modBallvelocity $ (const (capLen3 100 vec))
       sModPendingevents $ (BallKicked:)
       sModLasttouch $ const $ Just $ playerid p
 
