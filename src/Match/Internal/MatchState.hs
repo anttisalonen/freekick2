@@ -2,28 +2,16 @@
 module Match.Internal.MatchState
 where
 
-import Control.Monad
 import Control.Monad.State as State
-import Data.Maybe
-import Data.List
 import qualified Data.IntMap as M
-import System.CPUTime
-import Data.Word
-import Data.Function
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
-import Graphics.Rendering.FTGL as FTGL
 
-import qualified Swos
-import SDLUtils
-import Drawing
-import DrawPitch
 import DeriveMod
 import Ball
 import FVector
 import Player
-import SWOSShell
 
 type PlayerMap = M.IntMap Player
 type Formation = M.IntMap FRange
