@@ -242,10 +242,14 @@ absToRel m (x, y) =
   let (px, py) = pitchsize m
   in (x / px, y / py)
 
+relToAbs' :: FRange -> FRange -> FRange
+relToAbs' (px, py) (x, y) =
+  (px * x, py * y)
+
 relToAbs :: MatchState -> FRange -> FRange
-relToAbs m (x, y) =
-  let (px, py) = pitchsize m
-  in (px * x, py * y)
+relToAbs m c =
+  let ps = pitchsize m
+  in relToAbs' ps c
 
 formationPositionAbs :: MatchState -> Player -> FRange
 formationPositionAbs m pl =
@@ -309,7 +313,7 @@ kickoff p = do
   s <- State.get
   if not (inKickDistance s p)
     then goto (to2D (ballposition (ball s))) p
-    else kick (10, 0, 0) p
+    else kick (20, 0, 0) p
 
 beforeKickoffAI :: Match ()
 beforeKickoffAI = do
@@ -343,18 +347,18 @@ doAI = do
 onBallAI :: Player -> Match ()
 onBallAI pl = do
   s <- State.get
-  if cannotDribble s pl
-    then pass pl
-    else dribble pl
+  if canDribble s pl
+    then dribble pl
+    else pass pl
 
-cannotDribble :: MatchState -> Player -> Bool
-cannotDribble _ _ = False
+canDribble :: MatchState -> Player -> Bool
+canDribble _ _ = False
 
 dribble :: Player -> Match ()
 dribble _ = return ()
 
 getPassPower :: FRange -> Player -> FVector3
-getPassPower _ _ = (0, 0, 0)
+getPassPower _ _ = (20, 0, 0)
 
 pass :: Player -> Match ()
 pass pl = do
@@ -364,7 +368,18 @@ pass pl = do
   kick passpwr pl
 
 bestPassTarget :: MatchState -> Player -> Player
-bestPassTarget m pl = pl
+bestPassTarget m pl = 
+  snd $ head $ sortBy (compare `on` fst) $ map (passValue m pl) (ownPlayers m pl)
+
+passValue :: MatchState -> Player -> Player -> (Float, Player)
+passValue m passer receiver =
+  (max 0 (100 - (dist2 (plposition receiver) (oppositeGoalAbs (pitchsize m) (playerHome passer)))), receiver)
+
+oppositeGoalAbs :: FRange -> Bool -> FRange
+oppositeGoalAbs ps home =
+  if home
+    then relToAbs' ps (0.5, 1.0)
+    else relToAbs' ps (0.5, 0.0)
 
 ownPlayers :: MatchState -> Player -> [Player]
 ownPlayers m pl =
@@ -379,7 +394,9 @@ opponentPlayers m pl =
     else M.elems (awayplayers m)
 
 offBallAI :: Player -> Match ()
-offBallAI pl = return ()
+offBallAI pl = do
+  s <- State.get
+  goto (formationPositionAbs s pl) pl
 
 allPlayers :: MatchState -> [Player]
 allPlayers m = M.elems (homeplayers m) ++ (M.elems (awayplayers m))
