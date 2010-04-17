@@ -1,7 +1,9 @@
 module Match.Internal.MatchBase
 where
 
+import Control.Monad
 import qualified Data.IntMap as M
+import Data.Maybe
 import Data.List
 import Data.Ord
 
@@ -31,18 +33,24 @@ inKickDistance m p =
 nearestToBall :: MatchState -> Player
 nearestToBall m =
   let hp = nearestHPToBall m
-      ap = nearestAPToBall m
+      ap' = nearestAPToBall m
       hd = distanceToBall m hp
-      ad = distanceToBall m ap
+      ad = distanceToBall m ap'
   in if hd <= ad
        then hp
-       else ap
+       else ap'
 
 nearestOPToBall :: MatchState -> Player -> Player
 nearestOPToBall m pl =
   if playerHome pl
     then nearestHPToBall m
     else nearestAPToBall m
+
+nearestOPToPointwoGK :: MatchState -> FRange -> Player -> Player
+nearestOPToPointwoGK m p pl =
+  if playerHome pl
+    then nearestToBallHwoGK m p
+    else nearestToBallAwoGK m p
 
 nearestHPToBall :: MatchState -> Player
 nearestHPToBall m =
@@ -51,6 +59,15 @@ nearestHPToBall m =
 nearestAPToBall :: MatchState -> Player
 nearestAPToBall m =
   head $ sortBy (comparing (distanceToBall m)) (M.elems $ awayplayers m)
+
+-- without goalkeeper
+nearestToBallHwoGK :: MatchState -> FRange -> Player
+nearestToBallHwoGK m p =
+  head $ sortBy (comparing (\pl -> dist2 p (plposition pl))) (filter (\pl -> plpos pl /= Goalkeeper) $ M.elems $ homeplayers m)
+
+nearestToBallAwoGK :: MatchState -> FRange -> Player
+nearestToBallAwoGK m p =
+  head $ sortBy (comparing (\pl -> dist2 p (plposition pl))) (filter (\pl -> plpos pl /= Goalkeeper) $ M.elems $ awayplayers m)
 
 distanceToBall :: MatchState -> Player -> Float
 distanceToBall m pl = dist2 (to2D (ballposition (ball m))) (plposition pl)
@@ -106,4 +123,6 @@ aiControlled s n =
     Nothing -> True
     Just p  -> n /= p
 
+homeRestarts :: MatchState -> Bool
+homeRestarts m = fromMaybe True (liftM snd $ lasttouch m)
 
