@@ -61,9 +61,10 @@ doAI = do
             else return ()
     InPlay -> do
       forM_ (allPlayers s) $ \pl -> do
-        if inKickDistance s pl
-          then onBallAI pl
-          else offBallAI pl
+        when (aiControlled s (playerid pl)) $ do
+          if inKickDistance s pl
+            then onBallAI pl
+            else offBallAI pl
 
 onBallAI :: Player -> Match ()
 onBallAI pl = do
