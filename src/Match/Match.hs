@@ -182,6 +182,10 @@ execAI = do
   let plactions = doAI s
   mapM_ plact plactions
 
+updateTimers :: Match ()
+updateTimers = do
+  sModAllPlayers (modKicktimer (\t -> max 0 (t - fromIntegral frameTime)))
+
 runMatch :: Match ()
 runMatch = do
   t1 <- liftIO $ getCPUTime
@@ -194,6 +198,7 @@ runMatch = do
       handleMatchEvents
       updateBallPosition
       updateBallPlay
+      updateTimers
       t2 <- liftIO $ getCPUTime
       let tdiff = floor $ fromIntegral (t2 - t1) * (1e-9 :: Float)
       when (tdiff < frameTime) $ liftIO $ SDL.delay (frameTime - tdiff)
