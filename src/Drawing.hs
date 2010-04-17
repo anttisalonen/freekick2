@@ -36,8 +36,6 @@ data ImageInfo = ImageInfo {
   , imgsize    :: FRange
   }
 
-type Rectangle = ((Float, Float), (Float, Float))
-
 type Camera = ((Int, Int), (Int, Int))
 
 data SColor = SBlue | SOrange | SRed

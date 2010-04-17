@@ -5,6 +5,8 @@ type FRange = (Float, Float)
 
 type FVector3 = (Float, Float, Float)
 
+type Rectangle = ((Float, Float), (Float, Float))
+
 getX, getY, getZ :: FVector3 -> Float
 getX (x, _, _) = x
 getY (_, y, _) = y
@@ -70,3 +72,9 @@ mul2 (x, y) s = (x * s, y * s)
 
 to3D :: FRange -> Float -> FVector3
 to3D (x, y) z = (x, y, z)
+
+-- 's' as in "strict".
+inside2s :: FRange -> Rectangle -> Bool
+inside2s (x, y) ((x1, y1), (x2, y2)) =
+  x > x1 && x < x2 && y > y1 && y < y2
+
