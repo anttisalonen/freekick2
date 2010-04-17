@@ -37,7 +37,7 @@ beforeKickoffAI m =
       then (pl, Goto (relToAbs m (0.5, 0.5)))
       else if shouldAssistKickoff m pl
              then (pl, Goto (relToAbs m (0.52, 0.5)))
-             else (pl, Goto (formationPositionAbs m pl))
+             else (pl, Goto (kickoffPositionAbs m pl))
 
 forAIPlayers :: MatchState -> (Player -> a) -> [a]
 forAIPlayers m f = map f (filter (\pl -> aiControlled m (playerid pl)) (allPlayers m))

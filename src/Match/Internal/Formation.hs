@@ -67,13 +67,24 @@ createFormation home pls' =
 
 formationPosition :: MatchState -> Player -> FRange
 formationPosition m pl =
+  let (kx, ky) = kickoffPosition m pl
+  in if playerHome pl
+       then (kx, ky * 2)
+       else (kx, 1 - (1 - ky) * 2)
+
+formationPositionAbs :: MatchState -> Player -> FRange
+formationPositionAbs m pl =
+  relToAbs m (formationPosition m pl)
+
+kickoffPosition :: MatchState -> Player -> FRange
+kickoffPosition m pl =
   let (plnum, plhome) = playerid pl 
       sourcemap       = if plhome then homeformation m else awayformation m
   in M.findWithDefault (0.5, 0.5) plnum sourcemap
 
-formationPositionAbs :: MatchState -> Player -> FRange
-formationPositionAbs m pl =
-  let rel = formationPosition m pl
+kickoffPositionAbs :: MatchState -> Player -> FRange
+kickoffPositionAbs m pl =
+  let rel = kickoffPosition m pl
   in relToAbs m rel
 
 shouldDoKickoff :: MatchState -> Player -> Bool
