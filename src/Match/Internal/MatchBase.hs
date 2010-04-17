@@ -126,3 +126,12 @@ aiControlled s n =
 homeRestarts :: MatchState -> Bool
 homeRestarts m = fromMaybe True (liftM snd $ lasttouch m)
 
+pausedBallplay :: MatchState -> Bool
+pausedBallplay m = pausedBallplay' (ballplay m)
+
+pausedBallplay' :: BallPlay -> Bool
+pausedBallplay' (WaitForKickoff _) = True
+pausedBallplay' (OutOfPlay _ _)    = True
+pausedBallplay' _                  = False
+
+
