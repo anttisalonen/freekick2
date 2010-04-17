@@ -1,10 +1,7 @@
 module Match.Internal.AI(doAI)
 where
 
-import Control.Monad
-import Control.Monad.State as State
 import Data.List
-import qualified Data.IntMap as M
 import Data.Function
 
 import FVector
@@ -16,15 +13,14 @@ import Match.Internal.MatchBase
 import Match.Internal.Actions
 import Match.Internal.Formation
 
-offBallAI :: Player -> Match ()
-offBallAI pl = do
-  s <- State.get
-  goto (formationPositionAbs s pl) pl
+offBallAI :: MatchState -> Player -> PlAction
+offBallAI m pl = 
+  (pl, Goto (formationPositionAbs m pl))
 
-pass :: Player -> Player -> Match ()
-pass receiver passer = do
+pass :: Player -> Player -> PlAction
+pass receiver passer = 
   let passpwr = getPassPower (plposition receiver) passer
-  kick passpwr passer
+  in (passer, Kick passpwr)
 
 bestPassTarget :: MatchState -> Player -> (Float, Player)
 bestPassTarget m pl = 
@@ -34,59 +30,55 @@ passValue :: MatchState -> Player -> Player -> (Float, Player)
 passValue m passer receiver =
   (max 0 (100 - (dist2 (plposition receiver) (oppositeGoalAbs m passer))), receiver)
 
-beforeKickoffAI :: Match ()
-beforeKickoffAI = do
-  s <- State.get
-  forM_ (M.elems (awayplayers s) ++ (M.elems (homeplayers s))) $ \pl -> do
-    when (aiControlled s (playerid pl)) $ do
-      if shouldDoKickoff s pl
-        then goto (relToAbs s (0.5, 0.5)) pl
-        else if shouldAssistKickoff s pl
-               then goto (relToAbs s (0.52, 0.5)) pl
-               else goto (formationPositionAbs s pl) pl
+beforeKickoffAI :: MatchState -> [PlAction]
+beforeKickoffAI m = 
+  forAIPlayers m $ \pl -> do
+    if shouldDoKickoff m pl
+      then (pl, Goto (relToAbs m (0.5, 0.5)))
+      else if shouldAssistKickoff m pl
+             then (pl, Goto (relToAbs m (0.52, 0.5)))
+             else (pl, Goto (formationPositionAbs m pl))
 
-doAI :: Match ()
-doAI = do
-  s <- State.get
-  case ballplay s of
-    BeforeKickoff    -> beforeKickoffAI
-    WaitForKickoff _ -> beforeKickoffAI
-    DoKickoff -> do
-      forM_ (M.elems (awayplayers s) ++ (M.elems (homeplayers s))) $ \pl -> do
-        when (aiControlled s (playerid pl)) $ do
-          if shouldDoKickoff s pl
-            then kickoff pl
-            else return ()
-    InPlay -> do
-      forM_ (allPlayers s) $ \pl -> do
-        when (aiControlled s (playerid pl)) $ do
-          if inKickDistance s pl
-            then onBallAI pl
-            else offBallAI pl
+forAIPlayers :: MatchState -> (Player -> a) -> [a]
+forAIPlayers m f = map f (filter (\pl -> aiControlled m (playerid pl)) (allPlayers m))
 
-onBallAI :: Player -> Match ()
-onBallAI pl = do
-  s <- State.get
-  let (passscore, passpl) = bestPassTarget s pl
-      (dribblescore, dribbledir) = bestDribbleTarget s pl
-  if passscore > dribblescore
-    then pass passpl pl
-    else dribble dribbledir pl
+doAI :: MatchState -> [PlAction]
+doAI m = 
+  case ballplay m of
+    BeforeKickoff    -> beforeKickoffAI m
+    WaitForKickoff _ -> beforeKickoffAI m
+    DoKickoff -> 
+      forAIPlayers m $ \pl -> do
+          if shouldDoKickoff m pl
+            then kickoff m pl
+            else (pl, Idle)
+    InPlay -> 
+      forAIPlayers m $ \pl -> do
+          if inKickDistance m pl
+            then onBallAI m pl
+            else offBallAI m pl
+
+onBallAI :: MatchState -> Player -> PlAction
+onBallAI m pl = 
+  let (passscore, passpl) = bestPassTarget m pl
+      (dribblescore, dribbledir) = bestDribbleTarget m pl
+  in if passscore > dribblescore
+       then pass passpl pl
+       else dribble dribbledir pl
 
 bestDribbleTarget :: MatchState -> Player -> (Float, FRange)
 bestDribbleTarget m pl = (1, oppositeGoalAbs m pl)
 
-dribble :: FRange -> Player -> Match ()
-dribble _ _ = return ()
+dribble :: FRange -> Player -> PlAction
+dribble _ pl = (pl, Idle)
 
 getPassPower :: FRange -> Player -> FVector3
 getPassPower _ _ = (20, 0, 0)
 
-kickoff :: Player -> Match ()
-kickoff p = do
-  s <- State.get
-  if not (inKickDistance s p)
-    then goto (to2D (ballposition (ball s))) p
-    else kick (20, 0, 0) p
+kickoff :: MatchState -> Player -> PlAction
+kickoff m p = 
+  if not (inKickDistance m p)
+    then (p, Goto (to2D (ballposition (ball m))))
+    else (p, Kick (20, 0, 0))
 
 

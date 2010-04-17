@@ -28,6 +28,7 @@ import SWOSShell
 import Match.Internal.MatchState
 import Match.Internal.MatchBase
 import Match.Internal.AI
+import Match.Internal.Actions
 import Match.Internal.Formation
 
 data TeamOwner = HumanOwner | AIOwner
@@ -175,6 +176,12 @@ updateBallPosition = do
   sModBall $ gravitateBall dt
   sModBall $ slowDownBall dt
 
+execAI :: Match ()
+execAI = do
+  s <- State.get
+  let plactions = doAI s
+  mapM_ plact plactions
+
 runMatch :: Match ()
 runMatch = do
   t1 <- liftIO $ getCPUTime
@@ -183,7 +190,7 @@ runMatch = do
     then return ()
     else do
       drawMatch
-      doAI
+      execAI
       handleMatchEvents
       updateBallPosition
       updateBallPlay

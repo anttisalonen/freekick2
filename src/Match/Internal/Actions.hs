@@ -1,4 +1,7 @@
-module Match.Internal.Actions
+module Match.Internal.Actions(Action(..),
+  PlAction,
+  act,
+  plact)
 where
 
 import Control.Monad.State as State
@@ -9,6 +12,18 @@ import Player
 
 import Match.Internal.MatchState
 import Match.Internal.MatchBase
+
+data Action = Goto FRange | Kick FVector3 | Idle
+
+type PlAction = (Player, Action)
+
+plact :: PlAction -> Match ()
+plact = uncurry act
+
+act :: Player -> Action -> Match ()
+act p (Goto t) = goto t p
+act p (Kick t) = kick t p
+act _ Idle     = return ()
 
 goto :: FRange -> Player -> Match ()
 goto (x, y) pl = do
