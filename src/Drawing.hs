@@ -1,8 +1,10 @@
+{-# LANGUAGE ExistentialQuantification #-}
 module Drawing(ImageInfo(..),
   Rectangle,
   Camera,
   SColor(..),
   Sprite(..),
+  SpriteBox(..),
   rectToNum,
   camToNum,
   drawTiling,
@@ -11,6 +13,7 @@ module Drawing(ImageInfo(..),
   setCamera,
   setCamera',
   drawSprite,
+  topDownDepth,
   drawBox)
 where
 
@@ -43,6 +46,13 @@ class Sprite a where
   getTexture :: a -> TextureObject
   getRectangle :: a -> Rectangle
   getDepth :: a -> Float
+
+data SpriteBox = forall s. Sprite s => SB s
+
+instance Sprite SpriteBox where
+  getTexture (SB s) = getTexture s
+  getRectangle (SB s) = getRectangle s
+  getDepth (SB s) = getDepth s
 
 getSColor1 :: (Fractional a) => SColor -> Color3 a
 getSColor1 SBlue   = Color3 0.6784 0.8470 0.9019 -- light blue
@@ -147,6 +157,9 @@ drawSprite s = drawSprite' (getTexture s) (getRectangle s) (getDepth s)
 
 drawSprite' :: TextureObject -> Rectangle -> Float -> IO ()
 drawSprite' tex r f = drawBoxF (Right tex) (return ()) r f Nothing
+
+topDownDepth :: FRange -> Float -> Float
+topDownDepth (_, y) z = z - y * 0.002
 
 drawBox :: Either SColor TextureObject -> IO () -> Camera -> Int -> Maybe (String, Font) -> IO ()
 drawBox mat prep c d stf =

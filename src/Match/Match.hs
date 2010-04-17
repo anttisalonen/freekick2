@@ -127,8 +127,7 @@ drawMatch = do
     clear [ColorBuffer, DepthBuffer]
     setCamera' (campos s, (fromIntegral (w `div` 20), fromIntegral (h `div` 20)))
     callList (pitchlist s)
-    mapM_ drawPlayer $ sortBy (compare `on` playerHeight) (M.elems (homeplayers s) ++ M.elems (awayplayers s))
-    drawBall (ball s)
+    mapM_ drawSprite $ sortBy (compare `on` getDepth) (SB (ball s) : map SB (M.elems (homeplayers s) ++ M.elems (awayplayers s)))
     glSwapBuffers
 
 playerOnHisSide :: MatchState -> Player -> Bool

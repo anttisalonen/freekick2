@@ -40,9 +40,7 @@ playerTexRectangle p =
           (c, d) = imgsize $ plimage p
 
 playerHeight :: Player -> Float
-playerHeight p = 
-  let (_, yv) = plposition p
-  in plposz p - yv * 0.002
+playerHeight p = topDownDepth (plposition p) (plposz p)
 
 drawPlayer :: Player -> IO ()
 drawPlayer = drawSprite
