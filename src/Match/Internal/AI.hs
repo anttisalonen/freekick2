@@ -37,8 +37,13 @@ flipCompare a b
   | otherwise = EQ
 
 passValue :: MatchState -> Player -> Player -> (Float, Player)
-passValue m passer receiver =
-  (max 0 (100 - (dist2 (plposition receiver) (oppositeGoalAbs m passer))), receiver)
+passValue m _ receiver =
+  (shootPositionValue m (playerHome receiver) (plposition receiver), receiver)
+
+-- range: 0 .. 100
+shootPositionValue :: MatchState -> Bool -> FRange -> Float
+shootPositionValue _ home pos =
+  max 0 (100 - (dist2 pos (oppositeGoalAbs' pos home)))
 
 beforeKickoffAI :: MatchState -> [PlAction]
 beforeKickoffAI m = 
@@ -64,7 +69,7 @@ doAI m =
             else (pl, Idle)
     InPlay -> 
       forAIPlayers m $ \pl -> do
-          if inKickDistance m pl
+          if inKickDistance m pl && kicktimer pl <= 0
             then onBallAI m pl
             else offBallAI m pl
 
@@ -81,7 +86,7 @@ shootScore m pl =
    where 
      vecttogoal = oppositeGoalAbs m pl `diff2` plposition pl
      scorepts =
-       10 * (max 0 (40 - len2 vecttogoal))
+       shootPositionValue m (playerHome pl) (plposition pl)
      kickpwr =
        to3D (vecttogoal `mul2` 1.5) 3
 
@@ -93,7 +98,7 @@ dribble _ pl = (pl, Idle)
 
 getPassPower :: FRange -> Player -> FVector3
 getPassPower recv pl = 
-  to3D ((recv `diff2` (plposition pl)) `mul2` 1) 0
+  to3D ((recv `diff2` (plposition pl)) `mul2` 2) 0
 
 kickoff :: MatchState -> Player -> PlAction
 kickoff m p = 
