@@ -127,6 +127,15 @@ frameTime = 10
 camZoomLevel :: (Num a) => a
 camZoomLevel = 20
 
+cameraCenter w h s =
+   let (bx, by) =
+         case ballplay s of
+           OutOfPlayWaiting _ r -> getRestartPoint r
+           OutOfPlay _ r        -> getRestartPoint r
+           RestartPlay r        -> getRestartPoint r
+           _                    -> to2D (ballposition $ ball s)
+   in (bx - (w / (2 * camZoomLevel)), by - (h / (2 * camZoomLevel)))
+
 drawMatch :: Match ()
 drawMatch = do
   s <- State.get
@@ -135,8 +144,7 @@ drawMatch = do
       coords = (0, 50)
   liftIO $ do
     clear [ColorBuffer, DepthBuffer]
-    let (bx, by) = to2D (ballposition $ ball s)
-        cpos = (bx - (fromIntegral w / (2 * camZoomLevel)), by - (fromIntegral h / (2 * camZoomLevel)))
+    let cpos = cameraCenter (fromIntegral w) (fromIntegral h) s
     setCamera' (cpos, (fromIntegral (w `div` camZoomLevel), fromIntegral (h `div` camZoomLevel)))
     callList (pitchlist s)
     mapM_ drawSprite $ sortBy (compare `on` getDepth) (SB (ball s) : map SB (M.elems (homeplayers s) ++ M.elems (awayplayers s)))
