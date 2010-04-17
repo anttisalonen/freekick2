@@ -120,13 +120,18 @@ handleKeyEvents = do
 frameTime :: Word32 -- milliseconds
 frameTime = 10
 
+camZoomLevel :: (Num a) => a
+camZoomLevel = 20
+
 drawMatch :: Match ()
 drawMatch = do
   s <- State.get
   (w, h) <- liftIO $ getWindowSize
   liftIO $ do
     clear [ColorBuffer, DepthBuffer]
-    setCamera' (campos s, (fromIntegral (w `div` 20), fromIntegral (h `div` 20)))
+    let (bx, by) = to2D (ballposition $ ball s)
+    let cpos = (bx - (fromIntegral w / (2 * camZoomLevel)), by - (fromIntegral h / (2 * camZoomLevel)))
+    setCamera' (cpos, (fromIntegral (w `div` camZoomLevel), fromIntegral (h `div` camZoomLevel)))
     callList (pitchlist s)
     mapM_ drawSprite $ sortBy (compare `on` getDepth) (SB (ball s) : map SB (M.elems (homeplayers s) ++ M.elems (awayplayers s)))
     glSwapBuffers
