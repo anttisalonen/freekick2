@@ -2,6 +2,8 @@ module Match.Internal.MatchBase
 where
 
 import qualified Data.IntMap as M
+import Data.List
+import Data.Ord
 
 import Ball
 import FVector
@@ -25,6 +27,36 @@ inKickDistance m p =
   in if bz > 0.8
        then False
        else dist2 (bx, by) pp < 0.5
+
+nearestToBall :: MatchState -> Player
+nearestToBall m =
+  let hp = nearestHPToBall m
+      ap = nearestAPToBall m
+      hd = distanceToBall m hp
+      ad = distanceToBall m ap
+  in if hd <= ad
+       then hp
+       else ap
+
+nearestOPToBall :: MatchState -> Player -> Player
+nearestOPToBall m pl =
+  if playerHome pl
+    then nearestHPToBall m
+    else nearestAPToBall m
+
+nearestHPToBall :: MatchState -> Player
+nearestHPToBall m =
+  head $ sortBy (comparing (distanceToBall m)) (M.elems $ homeplayers m)
+
+nearestAPToBall :: MatchState -> Player
+nearestAPToBall m =
+  head $ sortBy (comparing (distanceToBall m)) (M.elems $ awayplayers m)
+
+distanceToBall :: MatchState -> Player -> Float
+distanceToBall m pl = dist2 (to2D (ballposition (ball m))) (plposition pl)
+
+ballCoords :: MatchState -> FRange
+ballCoords = to2D . ballposition . ball
 
 flipSide :: FRange -> FRange
 flipSide (x, y) = (1 - x, 1 - y)
