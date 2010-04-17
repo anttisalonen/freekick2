@@ -21,20 +21,18 @@ offBallAI pl = do
   s <- State.get
   goto (formationPositionAbs s pl) pl
 
-pass :: Player -> Match ()
-pass pl = do
-  s <- State.get
-  let tgtpl = bestPassTarget s pl
-      passpwr = getPassPower (plposition tgtpl) pl
-  kick passpwr pl
+pass :: Player -> Player -> Match ()
+pass receiver passer = do
+  let passpwr = getPassPower (plposition receiver) passer
+  kick passpwr passer
 
-bestPassTarget :: MatchState -> Player -> Player
+bestPassTarget :: MatchState -> Player -> (Float, Player)
 bestPassTarget m pl = 
-  snd $ head $ sortBy (compare `on` fst) $ map (passValue m pl) (ownPlayers m pl)
+  head $ sortBy (compare `on` fst) $ map (passValue m pl) (ownPlayers m pl)
 
 passValue :: MatchState -> Player -> Player -> (Float, Player)
 passValue m passer receiver =
-  (max 0 (100 - (dist2 (plposition receiver) (oppositeGoalAbs (pitchsize m) (playerHome passer)))), receiver)
+  (max 0 (100 - (dist2 (plposition receiver) (oppositeGoalAbs m passer))), receiver)
 
 beforeKickoffAI :: Match ()
 beforeKickoffAI = do
@@ -69,15 +67,17 @@ doAI = do
 onBallAI :: Player -> Match ()
 onBallAI pl = do
   s <- State.get
-  if canDribble s pl
-    then dribble pl
-    else pass pl
+  let (passscore, passpl) = bestPassTarget s pl
+      (dribblescore, dribbledir) = bestDribbleTarget s pl
+  if passscore > dribblescore
+    then pass passpl pl
+    else dribble dribbledir pl
 
-canDribble :: MatchState -> Player -> Bool
-canDribble _ _ = False
+bestDribbleTarget :: MatchState -> Player -> (Float, FRange)
+bestDribbleTarget m pl = (1, oppositeGoalAbs m pl)
 
-dribble :: Player -> Match ()
-dribble _ = return ()
+dribble :: FRange -> Player -> Match ()
+dribble _ _ = return ()
 
 getPassPower :: FRange -> Player -> FVector3
 getPassPower _ _ = (20, 0, 0)

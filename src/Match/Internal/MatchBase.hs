@@ -58,8 +58,12 @@ opponentPlayers m pl =
 allPlayers :: MatchState -> [Player]
 allPlayers m = M.elems (homeplayers m) ++ (M.elems (awayplayers m))
 
-oppositeGoalAbs :: FRange -> Bool -> FRange
-oppositeGoalAbs ps home =
+oppositeGoalAbs :: MatchState -> Player -> FRange
+oppositeGoalAbs m pl =
+  oppositeGoalAbs' (pitchsize m) (playerHome pl)
+
+oppositeGoalAbs' :: FRange -> Bool -> FRange
+oppositeGoalAbs' ps home =
   if home
     then relToAbs' ps (0.5, 1.0)
     else relToAbs' ps (0.5, 0.0)
