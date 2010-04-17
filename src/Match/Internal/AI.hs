@@ -24,10 +24,13 @@ pass receiver passer =
   let passpwr = getPassPower (plposition receiver) passer
   in (passer, Kick passpwr)
 
-bestPassTarget :: MatchState -> Player -> (Float, Player)
-bestPassTarget m pl = 
-  head $ filter ((/= pl) . snd) $ sortBy (flipCompare `on` fst) $ map (passValue m pl) (ownPlayers m pl)
+bestPassTarget :: MatchState -> Player -> (Float, PlAction)
+bestPassTarget m pl = (passpts, pass passtarget pl)
+  where 
+    (passpts, passtarget) = 
+      head $ sortBy (flipCompare `on` fst) $ map (passValue m pl) (filter (/= pl) $ ownPlayers m pl)
 
+flipCompare :: (Ord a) => a -> a -> Ordering
 flipCompare a b
   | a < b     = GT
   | a > b     = LT
@@ -67,14 +70,23 @@ doAI m =
 
 onBallAI :: MatchState -> Player -> PlAction
 onBallAI m pl = 
-  let (passscore, passpl) = bestPassTarget m pl
-      (dribblescore, dribbledir) = bestDribbleTarget m pl
-  in if passscore > dribblescore
-       then pass passpl pl
-       else dribble dribbledir pl
+  let passact    = bestPassTarget m pl
+      dribbleact = bestDribbleTarget m pl
+      shootact   = shootScore m pl
+  in snd $ head $ sortBy (flipCompare `on` fst) [passact, dribbleact, shootact]
 
-bestDribbleTarget :: MatchState -> Player -> (Float, FRange)
-bestDribbleTarget m pl = (1, oppositeGoalAbs m pl)
+shootScore :: MatchState -> Player -> (Float, PlAction)
+shootScore m pl =
+  (scorepts, (pl, Kick kickpwr))
+   where 
+     vecttogoal = oppositeGoalAbs m pl `diff2` plposition pl
+     scorepts =
+       10 * (max 0 (40 - len2 vecttogoal))
+     kickpwr =
+       to3D (vecttogoal `mul2` 1.5) 3
+
+bestDribbleTarget :: MatchState -> Player -> (Float, PlAction)
+bestDribbleTarget m pl = (1, dribble (oppositeGoalAbs m pl) pl)
 
 dribble :: FRange -> Player -> PlAction
 dribble _ pl = (pl, Idle)
