@@ -22,6 +22,9 @@ data Player = Player {
   }
 $(deriveMods ''Player)
 
+instance Eq Player where
+  p1 == p2 = playerid p1 == playerid p2
+
 instance Sprite Player where
   getTexture   = imgtexture . plimage
   getRectangle = playerTexRectangle
