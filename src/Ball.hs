@@ -16,6 +16,11 @@ data Ball = Ball {
   }
 $(deriveMods ''Ball)
 
+instance Sprite Ball where
+  getTexture     = imgtexture . ballimage
+  getRectangle b = (to2D (ballposition b), imgsize (ballimage b))
+  getDepth       = ballposz
+
 initialBall :: Float -> FRange -> ImageInfo -> Ball
 initialBall zv (px, py) img = Ball (px / 2, py / 2, 0) nullFVector3 img zv
 
@@ -51,6 +56,6 @@ slowDownBall dt b =
          modBallvelocity (*** (1 - (1 * dt))) b
 
 drawBall :: Ball -> IO ()
-drawBall b = drawSprite (imgtexture (ballimage b)) (to2D (ballposition b), imgsize (ballimage b)) (ballposz b)
+drawBall = drawSprite 
 
 

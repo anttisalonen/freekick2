@@ -9,6 +9,7 @@ import Data.Function
 
 import FVector
 import Player
+import Ball
 
 import Match.Internal.MatchState
 import Match.Internal.MatchBase
@@ -79,5 +80,12 @@ dribble _ = return ()
 
 getPassPower :: FRange -> Player -> FVector3
 getPassPower _ _ = (20, 0, 0)
+
+kickoff :: Player -> Match ()
+kickoff p = do
+  s <- State.get
+  if not (inKickDistance s p)
+    then goto (to2D (ballposition (ball s))) p
+    else kick (20, 0, 0) p
 
 

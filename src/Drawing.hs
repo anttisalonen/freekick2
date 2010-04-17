@@ -1,4 +1,17 @@
-module Drawing
+module Drawing(ImageInfo(..),
+  Rectangle,
+  Camera,
+  SColor(..),
+  Sprite(..),
+  rectToNum,
+  camToNum,
+  drawTiling,
+  ChangeRGB,
+  loadTexture,
+  setCamera,
+  setCamera',
+  drawSprite,
+  drawBox)
 where
 
 import System.IO.Error hiding (catch)
@@ -25,6 +38,11 @@ type Rectangle = ((Float, Float), (Float, Float))
 type Camera = ((Int, Int), (Int, Int))
 
 data SColor = SBlue | SOrange | SRed
+
+class Sprite a where
+  getTexture :: a -> TextureObject
+  getRectangle :: a -> Rectangle
+  getDepth :: a -> Float
 
 getSColor1 :: (Fractional a) => SColor -> Color3 a
 getSColor1 SBlue   = Color3 0.6784 0.8470 0.9019 -- light blue
@@ -124,8 +142,11 @@ setCamera' c = do
   ortho minx (minx + diffx) miny (miny + diffy) (-10) (10 :: GLdouble)
   matrixMode $= Modelview 0
 
-drawSprite :: TextureObject -> Rectangle -> Float -> IO ()
-drawSprite tex r f = drawBoxF (Right tex) (return ()) r f Nothing
+drawSprite :: (Sprite a) => a -> IO ()
+drawSprite s = drawSprite' (getTexture s) (getRectangle s) (getDepth s)
+
+drawSprite' :: TextureObject -> Rectangle -> Float -> IO ()
+drawSprite' tex r f = drawBoxF (Right tex) (return ()) r f Nothing
 
 drawBox :: Either SColor TextureObject -> IO () -> Camera -> Int -> Maybe (String, Font) -> IO ()
 drawBox mat prep c d stf =

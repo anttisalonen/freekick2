@@ -22,6 +22,11 @@ data Player = Player {
   }
 $(deriveMods ''Player)
 
+instance Sprite Player where
+  getTexture   = imgtexture . plimage
+  getRectangle = playerTexRectangle
+  getDepth     = playerHeight
+
 playerHome :: Player -> Bool
 playerHome = snd . playerid
 
@@ -40,6 +45,6 @@ playerHeight p =
   in plposz p - yv * 0.002
 
 drawPlayer :: Player -> IO ()
-drawPlayer p = drawSprite (imgtexture (plimage p)) (playerTexRectangle p) (playerHeight p)
+drawPlayer = drawSprite
 
 

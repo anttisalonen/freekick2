@@ -34,11 +34,4 @@ kick vec p = do
       sModPendingevents $ (BallKicked:)
       sModLasttouch $ const $ Just $ playerid p
 
-kickoff :: Player -> Match ()
-kickoff p = do
-  s <- State.get
-  if not (inKickDistance s p)
-    then goto (to2D (ballposition (ball s))) p
-    else kick (20, 0, 0) p
-
 
