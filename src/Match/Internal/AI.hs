@@ -82,11 +82,11 @@ doAI m =
 
 shouldRestart :: MatchState -> Restart -> Player -> Bool
 shouldRestart m (ThrowIn p) pl =
-  pl == nearestOPToPointwoGK m p pl
+  pl == nearestOPToPointwoGK m p pl && (homeRestarts m == playerHome pl)
 shouldRestart m (CornerKick p) pl =
-  pl == nearestOPToPointwoGK m p pl
-shouldRestart _ (GoalKick _) pl =
-  plpos pl == Goalkeeper
+  pl == nearestOPToPointwoGK m p pl && (homeRestarts m == playerHome pl)
+shouldRestart m (GoalKick _) pl =
+  plpos pl == Goalkeeper && (homeRestarts m == playerHome pl)
 
 beforeRestartAI :: MatchState -> Restart -> [PlAction]
 beforeRestartAI m r =
@@ -97,13 +97,13 @@ beforeRestartAI m r =
 
 restartLookout :: MatchState -> Restart -> Player -> PlAction
 restartLookout m _ pl = 
-  (pl, Goto (formationPositionAbs m pl)) -- TODO
+  (pl, Goto (formationPositionAbs m pl))
 
 restart :: MatchState -> Restart -> Player -> PlAction
 restart m _ pl =
   if not (inKickDistance m pl)
     then (pl, Goto (to2D (ballposition (ball m))))
-    else onBallAI m pl  -- TODO: disable dribble here
+    else snd $ bestPassTarget m pl
 
 onBallAI :: MatchState -> Player -> PlAction
 onBallAI m pl = 
