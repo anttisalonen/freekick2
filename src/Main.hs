@@ -45,7 +45,7 @@ drawGenScene :: TextureObject -> [Button a] -> IO ()
 drawGenScene tex btns = do
   clear [ColorBuffer, DepthBuffer]
   (w, h) <- getWindowSize
-  drawBox (Right tex) (color $ Color3 0.4 0.4 (0.4 :: GLfloat)) ((0, 0), (w, h)) (-1) Nothing
+  drawBox (Right tex) (color $ Color3 0.05 0.3 (0.1 :: GLfloat)) ((0, 0), (w, h)) (-1) Nothing
   mapM_ drawButton btns
   glSwapBuffers
 
