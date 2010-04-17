@@ -42,11 +42,11 @@ goto (x, y) pl = do
 kick :: FVector3 -> Player -> Match ()
 kick vec p = do
   s <- State.get
-  if not (inKickDistance s p)
+  if not (inKickDistance s p) || (kicktimer p > 0)
     then return ()
     else do
       sModBall $ modBallvelocity $ (const (capLen3 100 vec))
       sModPendingevents $ (BallKicked:)
       sModLasttouch $ const $ Just $ playerid p
-
+      sModPlayer (playerid p) $ modKicktimer $ const 1000
 
