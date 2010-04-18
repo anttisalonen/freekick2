@@ -38,7 +38,9 @@ data MatchTextureSet = MatchTextureSet {
     pitchtexture      :: TextureObject
   , hometexture       :: TextureObject
   , awaytexture       :: TextureObject
+  , playershadowinfo  :: ImageInfo
   , ballimginfo       :: ImageInfo
+  , ballshadowinfo    :: ImageInfo
   , humandrawsize     :: FRange
   }
 
@@ -62,7 +64,7 @@ initMatchState :: DisplayList
                -> MatchState
 initMatchState plist psize cpos pltexs (ht, at) c f1 f2 tname1 tname2 = 
   MatchState plist [] psize cpos hps aps hf af c BeforeKickoff 
-             (initialBall onPitchZ psize (ballimginfo pltexs))
+             (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
              [] Nothing 0 0 f1 f2 tname1 tname2
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
@@ -87,6 +89,7 @@ createPlayers home texs psize t =
                                      home 
                                      (hometexture texs) 
                                      (awaytexture texs) 
+                                     (playershadowinfo texs)
                                      (humandrawsize texs) 
                                      psize) 
                  pllist))
@@ -147,7 +150,9 @@ drawMatch = do
     let cpos = cameraCenter (fromIntegral w) (fromIntegral h) s
     setCamera' (cpos, (fromIntegral (w `div` camZoomLevel), fromIntegral (h `div` camZoomLevel)))
     callList (pitchlist s)
-    mapM_ drawSprite $ sortBy (compare `on` getDepth) (SB (ball s) : map SB (M.elems (homeplayers s) ++ M.elems (awayplayers s)))
+    drawBallShadow $ ball s
+    mapM_ drawPlayerShadow (allPlayers s)
+    mapM_ drawSprite $ sortBy (compare `on` getDepth) (SB (ball s) : map SB (allPlayers s))
     when (pausedBallplay s) $ writeText w h (matchfont1 s) text coords
     glSwapBuffers
 

@@ -13,6 +13,7 @@ module Drawing(ImageInfo(..),
   setCamera,
   setCamera',
   drawSprite,
+  drawSprite',
   topDownDepth,
   drawBox)
 where

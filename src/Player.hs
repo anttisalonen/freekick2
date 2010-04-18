@@ -16,6 +16,7 @@ type PlayerID = (Int, Bool)
 data Player = Player {
     plposition  :: FRange
   , plimage     :: ImageInfo
+  , plshadow    :: ImageInfo
   , plposz      :: Float
   , playerid    :: PlayerID
   , plpos       :: PlPosition
@@ -49,4 +50,13 @@ playerHeight p = topDownDepth (plposition p) (plposz p)
 drawPlayer :: Player -> IO ()
 drawPlayer = drawSprite
 
+drawPlayerShadow :: Player -> IO ()
+drawPlayerShadow p = drawSprite' (imgtexture (plshadow p)) (playerShadowRectangle p) (plposz p)
+
+playerShadowRectangle :: Player -> Rectangle
+playerShadowRectangle p = ((x, y), (w, h))
+  where (x, y)   = (bx, by - bh / 2)
+        (bx, by) = fst $ playerTexRectangle p
+        (w, h) = imgsize $ plshadow p
+        (_, bh) = imgsize $ plshadow p
 

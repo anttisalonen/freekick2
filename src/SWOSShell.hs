@@ -15,9 +15,9 @@ swosPositionToPosition p
   | Swos.isMidfielder p = Midfielder
   | otherwise           = Attacker
 
-swosPlayerToPlayer :: Float -> Bool -> TextureObject -> TextureObject -> FRange -> FRange -> Swos.SWOSPlayer -> Player
-swosPlayerToPlayer inz home htex atex hsize (px, py) p = 
-  Player (px - 10, py / 2) (ImageInfo tex hsize) inz ((Swos.plnumber p), home) npos 0
+swosPlayerToPlayer :: Float -> Bool -> TextureObject -> TextureObject -> ImageInfo -> FRange -> FRange -> Swos.SWOSPlayer -> Player
+swosPlayerToPlayer inz home htex atex plshimg hsize (px, py) p = 
+  Player (px - 10, py / 2) (ImageInfo tex hsize) plshimg inz ((Swos.plnumber p), home) npos 0
     where tex = if home then htex else atex
           npos = swosPositionToPosition (Swos.plposition p)
 

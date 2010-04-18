@@ -12,22 +12,26 @@ data Ball = Ball {
     ballposition :: FVector3
   , ballvelocity :: FVector3
   , ballimage    :: ImageInfo
+  , ballshadow   :: ImageInfo
   , ballposz     :: Float
   }
 $(deriveMods ''Ball)
 
 instance Sprite Ball where
   getTexture     = imgtexture . ballimage
-  getRectangle b = ballTexRectangle b
+  getRectangle b = ballTexRectangle True b
   getDepth b     = topDownDepth (to2D $ ballposition b) (ballposz b)
 
-initialBall :: Float -> FRange -> ImageInfo -> Ball
-initialBall zv (px, py) img = Ball (px / 2, py / 2, 0) nullFVector3 img zv
+initialBall :: Float -> FRange -> ImageInfo -> ImageInfo -> Ball
+initialBall zv (px, py) img shimg = Ball (px / 2, py / 2, 0) nullFVector3 img shimg zv
 
-ballTexRectangle :: Ball -> Rectangle
-ballTexRectangle b = ((x - s / 2, y - t / 2), (s, t))
-      where (x, y) = to2D (ballposition b)
+ballTexRectangle :: Bool -> Ball -> Rectangle
+ballTexRectangle sh b = ((x - s / 2, y - t / 2 + sz), (s, t))
+      where (x, y, z) = ballposition b
             (s, t) = imgsize $ ballimage b
+            sz = if sh
+                   then z * 16.66
+                   else 0
 
 collCheckBall :: Ball -> Ball
 collCheckBall b =
@@ -63,4 +67,13 @@ slowDownBall dt b =
 drawBall :: Ball -> IO ()
 drawBall = drawSprite 
 
+drawBallShadow :: Ball -> IO ()
+drawBallShadow b = drawSprite' (imgtexture (ballshadow b)) (ballShadowRectangle b) (ballposz b)
+
+ballShadowRectangle :: Ball -> Rectangle
+ballShadowRectangle b = ((x, y), (w, h))
+  where (x, y)   = (bx, by - bh / 2)
+        (bx, by) = fst $ ballTexRectangle False b
+        (w, h) = imgsize $ ballshadow b
+        (_, bh) = imgsize $ ballimage b
 
