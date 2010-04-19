@@ -197,7 +197,7 @@ updateBallPlay = do
   case ballplay s of
     BeforeKickoff -> do
       when (all (playerOnHisSide s) (allPlayers s)) $
-        sModBallplay (const $ WaitForKickoff 2000)
+        sModBallplay (const $ WaitForKickoff 1000)
     WaitForKickoff timer -> do
       when (timer > 1000) $ sModBall $ modBallposition $ const $ to3D (px / 2, py / 2) 0
       sModBall $ modBallvelocity $ const nullFVector3
@@ -210,10 +210,10 @@ updateBallPlay = do
       let (bx, by) = to2D $ ballposition $ ball s
       when (bx < 0) $ do -- throwin from the left
         let restartpos = (0, by)
-        sModBallplay $ const $ OutOfPlayWaiting 2000 (ThrowIn restartpos)
+        sModBallplay $ const $ OutOfPlayWaiting 1000 (ThrowIn restartpos)
       when (bx > py) $ do -- throwin from the right
         let restartpos = (py, by)
-        sModBallplay $ const $ OutOfPlayWaiting 2000 (ThrowIn restartpos)
+        sModBallplay $ const $ OutOfPlayWaiting 1000 (ThrowIn restartpos)
       when (by < 0) $ do  -- corner kick or goal kick on bottom half
         if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 -- goal
           then do
@@ -227,13 +227,13 @@ updateBallPlay = do
                       if bx < px / 2
                         then (0, 0)
                         else (px, 0)
-                sModBallplay $ const $ OutOfPlayWaiting 2000 (CornerKick restartpos)
+                sModBallplay $ const $ OutOfPlayWaiting 1000 (CornerKick restartpos)
               else do -- goal kick
                 let restartpos =
                       if bx < px / 2
                         then (px / 2 - 9.15, 5.5)
                         else (px / 2 + 9.15, 5.5)
-                sModBallplay $ const $ OutOfPlayWaiting 2000 (GoalKick restartpos)
+                sModBallplay $ const $ OutOfPlayWaiting 1000 (GoalKick restartpos)
       when (by > py) $ do  -- corner kick of goal kick on lower half
         if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 -- goal
           then do
@@ -246,22 +246,22 @@ updateBallPlay = do
                 let restartpos =
                       if bx < px / 2
                         then (px / 2 - 9.15, py - 5.5)
-                        else (px / 2 + 9.15, py + 5.5)
-                sModBallplay $ const $ OutOfPlayWaiting 2000 (GoalKick restartpos)
+                        else (px / 2 + 9.15, py - 5.5)
+                sModBallplay $ const $ OutOfPlayWaiting 1000 (GoalKick restartpos)
               else do -- corner kick
                 let restartpos =
                       if bx < px / 2
                         then (0, py)
                         else (px, py)
-                sModBallplay $ const $ OutOfPlayWaiting 2000 (CornerKick restartpos)
+                sModBallplay $ const $ OutOfPlayWaiting 1000 (CornerKick restartpos)
     OutOfPlayWaiting timer restart -> 
       if timer > 0
         then sModBallplay $ const $ OutOfPlayWaiting (timer - fromIntegral frameTime) restart
-        else sModBallplay $ const $ OutOfPlay 2000 restart
+        else sModBallplay $ const $ OutOfPlay 1000 restart
     OutOfPlay timer restart ->
       if timer > 0
         then do
-          when (timer > 1000) $ sModBall $ modBallposition $ const $ to3D (getRestartPoint restart) 0
+          when (timer < 1000) $ sModBall $ modBallposition $ const $ to3D (getRestartPoint restart) 0
           sModBall $ modBallvelocity $ const nullFVector3
           sModBallplay $ const $ OutOfPlay (timer - fromIntegral frameTime) restart
         else sModBallplay $ const $ RestartPlay restart
