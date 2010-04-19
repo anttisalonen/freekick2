@@ -6,6 +6,7 @@ module Match.Internal.Actions(Action(..),
 where
 
 import Control.Monad.State as State
+import System.Random
 
 import Ball
 import FVector
@@ -47,12 +48,34 @@ goto (x, y) pl = do
       modify $ modPlayer c $ modPlposition (goRight (-xvel))
       modify $ modPlayer c $ modPlposition (goUp (-yvel))
 
+getRandomR :: (Random a) => (a, a) -> State StdGen a
+getRandomR v = State $ \s -> randomR v s
+
+getKickVec :: FVector3 -> Player -> Match FVector3
+getKickVec v p = do
+  s <- State.get
+  let (x, y, z) = capLen3 100 v
+      relskill = if len2 (x, y) < 20 && z < 2
+                   then passingskill $ plskills p
+                   else shootingskill $ plskills p
+  let xvarmax = abs x / 5
+  let yvarmax = abs y / 5
+  let zvarmax = abs z / 5
+  let (v, g') = flip runState (randomgen s) $ do
+                  x' <- getRandomR (-xvarmax, xvarmax)
+                  y' <- getRandomR (-yvarmax, yvarmax)
+                  z' <- getRandomR (0, zvarmax)
+                  return (x + x', y + y', z + z')
+  sModRandomgen $ const g'
+  return v
+
 kick :: FVector3 -> Player -> Match ()
 kick vec p = do
   s <- State.get
   if not (inKickDistance s p) || (kicktimer p > 0)
     then return ()
     else do
+      kvec <- getKickVec vec p
       sModBall $ modBallvelocity $ (const (capLen3 100 vec))
       sModPendingevents $ (BallKicked:)
       sModLasttouch $ const $ Just $ playerid p
