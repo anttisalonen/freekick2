@@ -64,9 +64,9 @@ initMatchState :: DisplayList
                -> String -> String
                -> MatchState
 initMatchState plist psize cpos pltexs (ht, at) c f1 f2 tname1 tname2 = 
-  MatchState plist [] psize cpos hps aps hf af c BeforeKickoff 
+  MatchState plist [] psize cpos (Team hps hf 0 tname1) (Team aps af 0 tname2) c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
-             [] Nothing 0 0 f1 f2 tname1 tname2 (mkStdGen 21)
+             [] Nothing f1 f2 (mkStdGen 21)
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps

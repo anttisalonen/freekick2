@@ -15,9 +15,6 @@ import Ball
 import FVector
 import Player
 
-type PlayerMap = M.IntMap Player
-type Formation = M.IntMap FRange
-
 data Restart = ThrowIn FRange
              | GoalKick FRange
              | CornerKick FRange
@@ -37,33 +34,75 @@ data BallPlay = BeforeKickoff
 
 data MatchEvent = BallKicked
 
+type Formation = M.IntMap FRange
+
+type PlayerMap = M.IntMap Player
+
+data Team = Team {
+    players    :: PlayerMap
+  , formation  :: Formation
+  , goals      :: Int
+  , teamname   :: String
+}
+$(deriveMods ''Team)
+
 data MatchState = MatchState {
     pitchlist      :: DisplayList
   , currkeys       :: [SDLKey]
   , pitchsize      :: (Float, Float)
   , campos         :: (Float, Float)
-  , homeplayers    :: PlayerMap
-  , awayplayers    :: PlayerMap
-  , homeformation  :: Formation
-  , awayformation  :: Formation
+  , hometeam       :: Team
+  , awayteam       :: Team
   , controlledpl   :: Maybe PlayerID
   , ballplay       :: BallPlay
   , ball           :: Ball
   , pendingevents  :: [MatchEvent]
   , lasttouch      :: Maybe PlayerID
-  , homegoals      :: Int
-  , awaygoals      :: Int
   , matchfont1     :: Font
   , matchfont2     :: Font
-  , hometeamname   :: String
-  , awayteamname   :: String
   , randomgen      :: StdGen
   }
 $(deriveMods ''MatchState)
 
+modHomeplayers :: (PlayerMap -> PlayerMap) -> MatchState -> MatchState
+modHomeplayers f = modHometeam (modPlayers f)
+
+modAwayplayers :: (PlayerMap -> PlayerMap) -> MatchState -> MatchState
+modAwayplayers f = modAwayteam (modPlayers f)
+
+sModHomegoals :: (Int -> Int) -> Match ()
+sModHomegoals f = modify $ modHometeam (modGoals f)
+
+sModAwaygoals :: (Int -> Int) -> Match ()
+sModAwaygoals f = modify $ modAwayteam (modGoals f)
+
 modPlayer :: PlayerID -> (Player -> Player) -> MatchState -> MatchState
 modPlayer (pln, True)  f = modHomeplayers (M.adjust f pln)
 modPlayer (pln, False) f = modAwayplayers (M.adjust f pln)
+
+homeplayers :: MatchState -> PlayerMap
+homeplayers = players . hometeam
+
+awayplayers :: MatchState -> PlayerMap
+awayplayers = players . awayteam
+
+hometeamname :: MatchState -> String
+hometeamname = teamname . hometeam
+
+awayteamname :: MatchState -> String
+awayteamname = teamname . awayteam
+
+homegoals :: MatchState -> Int
+homegoals = goals . hometeam
+
+awaygoals :: MatchState -> Int
+awaygoals = goals . awayteam
+
+homeformation :: MatchState -> Formation
+homeformation = formation . hometeam
+
+awayformation :: MatchState -> Formation
+awayformation = formation . awayteam
 
 findPlayer :: PlayerID -> MatchState -> Maybe Player
 findPlayer (pln, True)  m = M.lookup pln (homeplayers m)
