@@ -55,7 +55,7 @@ getRandomR v = State $ \s -> randomR v s
 getKickVec :: FVector3 -> Player -> Match FVector3
 getKickVec v p = do
   s <- State.get
-  let (x, y, z) = capLen3 100 v
+  let (x, y, z) = capLen3 60 v
       relskill = if len2 (x, y) < 20 && z < 2
                    then passingskill $ plskills p
                    else shootingskill $ plskills p
