@@ -199,7 +199,7 @@ updateBallPlay = do
       when (all (playerOnHisSide s) (allPlayers s)) $
         sModBallplay (const $ WaitForKickoff 1000)
     WaitForKickoff timer -> do
-      when (timer > 1000) $ sModBall $ modBallposition $ const $ to3D (px / 2, py / 2) 0
+      when (timer < 1000) $ sModBall $ modBallposition $ const $ to3D (px / 2, py / 2) 0
       sModBall $ modBallvelocity $ const nullFVector3
       if timer < 0
         then sModBallplay (const DoKickoff)
@@ -219,7 +219,7 @@ updateBallPlay = do
           then do
             let restartpos = (px / 2, py / 2)
             sModAwaygoals succ
-            sModBallplay $ const $ BeforeKickoff
+            sModBallplay $ const BeforeKickoff
           else
             if not (homeRestarts s) -- corner kick
               then do
@@ -239,7 +239,7 @@ updateBallPlay = do
           then do
             let restartpos = (px / 2, py / 2)
             sModHomegoals succ
-            sModBallplay $ const $ BeforeKickoff
+            sModBallplay $ const BeforeKickoff
           else
             if not (homeRestarts s) -- goal kick
               then do
