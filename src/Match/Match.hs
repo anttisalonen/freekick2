@@ -132,6 +132,12 @@ handleKeyEvents = do
                             else 0
               tgt = (xd, yd) `add2` (plposition p)
           act p (Goto tgt)
+          when ((xd, yd) /= (0, 0)) $ do
+            when (SDLK_SPACE `elem` ks) $ do
+              act p (Kick (xd * 2.5, yd * 2.5, 3))
+            when (SDLK_RETURN `elem` ks) $ do
+              act p (Kick (xd * 2, yd * 2, 0))
+
   return (SDLK_ESCAPE `elem` ks)
 
 frameTime :: Word32 -- milliseconds
