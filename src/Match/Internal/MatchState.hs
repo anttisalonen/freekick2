@@ -63,6 +63,10 @@ modPlayer :: PlayerID -> (Player -> Player) -> MatchState -> MatchState
 modPlayer (pln, True)  f = modHomeplayers (M.adjust f pln)
 modPlayer (pln, False) f = modAwayplayers (M.adjust f pln)
 
+findPlayer :: PlayerID -> MatchState -> Maybe Player
+findPlayer (pln, True)  m = M.lookup pln (homeplayers m)
+findPlayer (pln, False) m = M.lookup pln (awayplayers m)
+
 modAllPlayers :: (Player -> Player) -> MatchState -> MatchState
 modAllPlayers f m = modHomeplayers (M.map f) (modAwayplayers (M.map f) m)
 
