@@ -1,12 +1,13 @@
-module SWOSShell
+module Match.SWOSShell
 where
 
 import Graphics.Rendering.OpenGL as OpenGL
 
 import qualified Swos
-import Player
 import Drawing
 import FVector
+
+import Match.Player
 
 swosPositionToPosition :: Swos.SWOSPosition -> PlPosition
 swosPositionToPosition p 

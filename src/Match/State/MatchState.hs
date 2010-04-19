@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Match.Internal.MatchState
+module Match.State.MatchState
 where
 
 import Control.Monad.State as State
@@ -11,9 +11,10 @@ import Graphics.UI.SDL as SDL
 import Graphics.Rendering.FTGL as FTGL
 
 import DeriveMod
-import Ball
 import FVector
-import Player
+
+import Match.Ball
+import Match.Player
 
 data Restart = ThrowIn FRange
              | GoalKick FRange

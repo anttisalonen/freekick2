@@ -1,17 +1,18 @@
-module Match.Internal.AI(doAI)
+module Match.State.AI(doAI)
 where
 
 import Data.List
 import Data.Function
 
 import FVector
-import Player
-import Ball
 
-import Match.Internal.MatchState
-import Match.Internal.MatchBase
-import Match.Internal.Actions
-import Match.Internal.Formation
+import Match.Player
+import Match.Ball
+
+import Match.State.MatchState
+import Match.State.MatchBase
+import Match.State.Actions
+import Match.State.Formation
 
 offBallAI :: MatchState -> Player -> PlAction
 offBallAI m pl = 

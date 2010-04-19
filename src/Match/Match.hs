@@ -21,17 +21,18 @@ import Graphics.Rendering.FTGL as FTGL
 import qualified Swos
 import SDLUtils
 import Drawing
-import DrawPitch
-import Ball
 import FVector
-import Player
-import SWOSShell
 
-import Match.Internal.MatchState
-import Match.Internal.MatchBase
-import Match.Internal.AI
-import Match.Internal.Actions
-import Match.Internal.Formation
+import Match.DrawPitch
+import Match.Ball
+import Match.Player
+import Match.SWOSShell
+
+import Match.State.MatchState
+import Match.State.MatchBase
+import Match.State.AI
+import Match.State.Actions
+import Match.State.Formation
 
 data MatchTextureSet = MatchTextureSet {
     pitchtexture      :: TextureObject

@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Ball
+module Match.Ball
 where
 
 import Control.Monad.State

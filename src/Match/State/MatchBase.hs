@@ -1,4 +1,4 @@
-module Match.Internal.MatchBase
+module Match.State.MatchBase
 where
 
 import Control.Monad
@@ -7,11 +7,12 @@ import Data.Maybe
 import Data.List
 import Data.Ord
 
-import Ball
 import FVector
-import Player
 
-import Match.Internal.MatchState
+import Match.Ball
+import Match.Player
+
+import Match.State.MatchState
 
 plspeed :: Player -> Float
 plspeed p = 0.2 * plsp

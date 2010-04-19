@@ -1,4 +1,4 @@
-module Match.Internal.Actions(Action(..),
+module Match.State.Actions(Action(..),
   PlAction,
   act,
   actP,
@@ -8,12 +8,13 @@ where
 import Control.Monad.State as State
 import System.Random
 
-import Ball
 import FVector
-import Player
 
-import Match.Internal.MatchState
-import Match.Internal.MatchBase
+import Match.Ball
+import Match.Player
+
+import Match.State.MatchState
+import Match.State.MatchBase
 
 data Action = Goto FRange | Kick FVector3 | Idle
 

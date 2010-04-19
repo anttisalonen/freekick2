@@ -1,13 +1,14 @@
-module Match.Internal.Formation
+module Match.State.Formation
 where
 
 import qualified Data.IntMap as M
 
 import FVector
-import Player
 
-import Match.Internal.MatchState
-import Match.Internal.MatchBase
+import Match.Player
+
+import Match.State.MatchState
+import Match.State.MatchBase
 
 mkGoalkeeperFormation :: Bool -> [Player] -> Formation
 mkGoalkeeperFormation True  pls = M.fromList (zip (map playerNumber pls) (repeat (0.5, 0.02)))

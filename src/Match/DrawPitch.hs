@@ -1,4 +1,4 @@
-module DrawPitch(drawPitch)
+module Match.DrawPitch(drawPitch)
 where
 
 import Graphics.Rendering.OpenGL as OpenGL

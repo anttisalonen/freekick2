@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Player
+module Match.Player
 where
 
 import Control.Monad.State
