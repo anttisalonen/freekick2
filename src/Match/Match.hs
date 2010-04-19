@@ -135,9 +135,9 @@ handleKeyEvents = do
           act p (Goto tgt)
           when ((xd, yd) /= (0, 0)) $ do
             when (SDLK_SPACE `elem` ks) $ do
-              act p (Kick (xd * 2.5, yd * 2.5, 3))
+              act p (Kick (xd * 45.5, yd * 45.5, 1))
             when (SDLK_RETURN `elem` ks) $ do
-              act p (Kick (xd * 2, yd * 2, 0))
+              act p (Kick (xd * 9, yd * 9, 0))
 
   return (SDLK_ESCAPE `elem` ks)
 
