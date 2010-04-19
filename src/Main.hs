@@ -216,9 +216,9 @@ hasJust _ Nothing  = False
 hasJust n (Just m) = n == m
 
 rotateTeam :: SWOSTeam -> Maybe (SWOSTeam, TeamOwner) -> Maybe (SWOSTeam, TeamOwner)
-rotateTeam t Nothing                = Just (t, HumanOwner)
-rotateTeam _ (Just (t, HumanOwner)) = Just (t, AIOwner)
-rotateTeam _ (Just (_, AIOwner))    = Nothing
+rotateTeam t Nothing                = Just (t, AIOwner)
+rotateTeam _ (Just (t, AIOwner))    = Just (t, HumanOwner)
+rotateTeam _ (Just (_, HumanOwner)) = Nothing
 
 getOwner :: String -> WorldContext -> Maybe TeamOwner
 getOwner t c =
