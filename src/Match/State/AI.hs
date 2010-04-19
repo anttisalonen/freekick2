@@ -133,7 +133,7 @@ dribble _ pl = (pl, Idle)
 
 getPassPower :: FRange -> Player -> FVector3
 getPassPower recv pl = 
-  to3D ((recv `diff2` (plposition pl)) `mul2` 2) 0
+  to3D ((recv `diff2` (plposition pl)) `mul2` 5) 0
 
 kickoff :: MatchState -> Player -> PlAction
 kickoff m p = 
