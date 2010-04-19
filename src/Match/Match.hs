@@ -12,6 +12,7 @@ import System.CPUTime
 import Data.Word
 import Data.Function
 import Text.Printf
+import System.Random
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -65,7 +66,7 @@ initMatchState :: DisplayList
 initMatchState plist psize cpos pltexs (ht, at) c f1 f2 tname1 tname2 = 
   MatchState plist [] psize cpos hps aps hf af c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
-             [] Nothing 0 0 f1 f2 tname1 tname2
+             [] Nothing 0 0 f1 f2 tname1 tname2 (mkStdGen 21)
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps

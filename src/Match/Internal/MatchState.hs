@@ -4,6 +4,7 @@ where
 
 import Control.Monad.State as State
 import qualified Data.IntMap as M
+import System.Random
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -56,6 +57,7 @@ data MatchState = MatchState {
   , matchfont2     :: Font
   , hometeamname   :: String
   , awayteamname   :: String
+  , randomgen      :: StdGen
   }
 $(deriveMods ''MatchState)
 
