@@ -294,6 +294,33 @@ updateTimers :: Match ()
 updateTimers = do
   sModAllPlayers (modKicktimer (\t -> max 0 (t - fromIntegral frameTime)))
 
+controllable :: BallPlay -> Bool
+controllable InPlay                     = True
+controllable DoKickoff                  = True
+controllable (RestartPlay (GoalKick _)) = False
+controllable (RestartPlay _)            = True
+controllable _                          = False
+
+setControl :: Bool -> Match ()
+setControl h = do
+  s <- State.get
+  let p = if h
+            then nearestToBallHwoGK s
+            else nearestToBallAwoGK s
+  sModControlledpl $ const $ Just $ playerid p
+
+setControlledPlayer :: Match ()
+setControlledPlayer = do
+  s <- State.get
+  if (controllable (ballplay s))
+    then
+      if teamowner (hometeam s) == HumanOwner
+        then setControl True
+        else if teamowner (awayteam s) == HumanOwner
+               then setControl False
+               else sModControlledpl $ const Nothing
+     else sModControlledpl $ const Nothing
+
 runMatch :: Match ()
 runMatch = do
   t1 <- liftIO $ getCPUTime
@@ -302,6 +329,7 @@ runMatch = do
     then return ()
     else do
       drawMatch
+      setControlledPlayer
       execAI
       handleMatchEvents
       updateBallPosition
