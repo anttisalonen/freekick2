@@ -178,7 +178,7 @@ writeText :: Int -> Int -> Font -> String -> FRange -> IO ()
 writeText w h f str (x, y) = do
   loadIdentity
   setCamera ((0, 0), (w, h))
-  color $ Color3 0 0 (0 :: GLfloat)
+  color $ Color3 1 1 (1 :: GLfloat)
   translate $ Vector3 (realToFrac x) (realToFrac y) (2 :: GLfloat)
   textlen <- getFontAdvance f str
   translate $ Vector3 (-(realToFrac textlen / 2)) 0 (0 :: GLfloat)
