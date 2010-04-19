@@ -67,7 +67,9 @@ doAI m =
       forAIPlayers m $ \pl ->
         if shouldDoKickoff m pl
           then kickoff m pl
-          else (pl, Idle)
+          else if shouldAssistKickoff m pl
+                 then (pl, Goto (relToAbs m (0.52, 0.5)))
+                 else (pl, Goto (kickoffPositionAbs m pl))
     InPlay -> 
       forAIPlayers m $ \pl ->
         if inKickDistance m pl && kicktimer pl <= 0
