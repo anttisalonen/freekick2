@@ -13,8 +13,9 @@ import Player
 
 import Match.Internal.MatchState
 
-plspeed :: Float
-plspeed = 0.2
+plspeed :: Player -> Float
+plspeed p = 0.2 * plsp
+  where plsp = 0.5 + shootingskill (plskills p) * 0.5 
 
 goUp :: Float -> FRange -> FRange
 goUp n (x, y) = (x, y + n)

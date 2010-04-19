@@ -38,12 +38,12 @@ goto (x, y) pl = do
   let (curx,  cury)  = plposition pl
       (diffx, diffy) = (curx - x, cury - y)
       c              = playerid pl
-  if abs diffx < plspeed && abs diffy < plspeed
+  if abs diffx < plspeed pl && abs diffy < plspeed pl
     then modify $ modPlayer c $ modPlposition (const (x, y))
     else do
       let ang = atan2 diffy diffx
-          xvel = cos ang * plspeed
-          yvel = sin ang * plspeed
+          xvel = cos ang * plspeed pl
+          yvel = sin ang * plspeed pl
       modify $ modPlayer c $ modPlposition (goRight (-xvel))
       modify $ modPlayer c $ modPlposition (goUp (-yvel))
 

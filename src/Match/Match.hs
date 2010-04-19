@@ -117,11 +117,22 @@ handleKeyEvents = do
   when (SDLK_RIGHT `elem` ks) $ sModCampos (goRight 1)
   case controlledpl s of
     Nothing -> return ()
-    Just c  -> do -- TODO: use goto instead
-      when (SDLK_w `elem` ks) $ modify $ modPlayer c $ modPlposition (goUp plspeed)
-      when (SDLK_s `elem` ks) $ modify $ modPlayer c $ modPlposition (goUp (-plspeed))
-      when (SDLK_a `elem` ks) $ modify $ modPlayer c $ modPlposition (goRight (-plspeed))
-      when (SDLK_d `elem` ks) $ modify $ modPlayer c $ modPlposition (goRight plspeed)
+    Just c  -> 
+      case findPlayer c s of
+        Nothing -> return ()
+        Just p  -> do
+          let xd = if (SDLK_d `elem` ks)
+                     then 10
+                     else if (SDLK_a `elem` ks)
+                            then -10
+                            else 0
+              yd = if (SDLK_w `elem` ks)
+                     then 10
+                     else if (SDLK_s `elem` ks)
+                            then -10
+                            else 0
+              tgt = (xd, yd) `add2` (plposition p)
+          act p (Goto tgt)
   return (SDLK_ESCAPE `elem` ks)
 
 frameTime :: Word32 -- milliseconds
