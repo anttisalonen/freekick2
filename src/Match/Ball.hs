@@ -30,15 +30,15 @@ ballTexRectangle sh b = ((x - s / 2, y - t / 2 + sz), (s, t))
       where (x, y, z) = ballposition b
             (s, t) = imgsize $ ballimage b
             sz = if sh
-                   then z * 16.66
+                   then z * 10
                    else 0
 
 collCheckBall :: Ball -> Ball
 collCheckBall b =
   let zv = getZ (ballposition b)
       zvel = getZ $ ballvelocity b
-  in if zv < 0
-       then modBallposition (addZ (2 * (-zv))) (modBallvelocity (addZ (2 * (-zvel))) b)
+  in if zv < 0  -- bounciness
+       then modBallposition (addZ (2 * (-zv))) (modBallvelocity (addZ (1.5 * (-zvel))) b)
      else
        b
 
@@ -48,7 +48,7 @@ gravitateBall dt b =
       zvel = getZ $ ballvelocity $ b
   in if (zv > 0.01)
        then 
-         modBallvelocity (addZ (-9.81 * dt)) b
+         modBallvelocity (addZ (-8 * dt)) b
        else
          if (abs zvel < 0.1) 
            then modBallvelocity (setZ 0) b
@@ -62,7 +62,7 @@ slowDownBall dt b =
        then  -- air viscosity
          modBallvelocity (*** (1 - (1 * dt))) b
        else  -- rolling friction
-         modBallvelocity (*** (1 - (1 * dt))) b
+         modBallvelocity (*** (1 - (1.6 * dt))) b
 
 drawBall :: Ball -> IO ()
 drawBall = drawSprite 
