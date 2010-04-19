@@ -132,7 +132,7 @@ aiControlled s n =
     Just p  -> n /= p
 
 homeRestarts :: MatchState -> Bool
-homeRestarts m = fromMaybe True (liftM snd $ lasttouch m)
+homeRestarts m = not $ fromMaybe True (liftM snd $ lasttouch m)
 
 pausedBallplay :: MatchState -> Bool
 pausedBallplay m = pausedBallplay' (ballplay m)
