@@ -13,6 +13,13 @@ data PlPosition = Goalkeeper | Defender | Midfielder | Attacker
 
 type PlayerID = (Int, Bool)
 
+data PlayerSkills = PlayerSkills {
+    shootingskill :: Int
+  , passingskill  :: Int
+  , speedskill    :: Int
+  }
+$(deriveMods ''PlayerSkills)
+
 data Player = Player {
     plposition  :: FRange
   , plimage     :: ImageInfo
@@ -21,6 +28,7 @@ data Player = Player {
   , playerid    :: PlayerID
   , plpos       :: PlPosition
   , kicktimer   :: Int
+  , plskills    :: PlayerSkills
   }
 $(deriveMods ''Player)
 
