@@ -33,7 +33,7 @@ actP p a = do
   s <- State.get
   case findPlayer p s of
     Nothing -> return ()
-    Just p  -> act p a
+    Just pl  -> act pl a
 
 goto :: FRange -> Player -> Match ()
 goto (x, y) pl = do
@@ -62,13 +62,13 @@ getKickVec v p = do
   let xvarmax = abs x / 5
   let yvarmax = abs y / 5
   let zvarmax = abs z / 5
-  let (v, g') = flip runState (randomgen s) $ do
+  let (vc, g') = flip runState (randomgen s) $ do
                   x' <- getRandomR (-xvarmax, xvarmax)
                   y' <- getRandomR (-yvarmax, yvarmax)
                   z' <- getRandomR (0, zvarmax)
                   return (x + x', y + y', z + z')
   sModRandomgen $ const g'
-  return v
+  return vc
 
 kick :: FVector3 -> Player -> Match ()
 kick vec p = do
@@ -77,7 +77,7 @@ kick vec p = do
     then return ()
     else do
       kvec <- getKickVec vec p
-      sModBall $ modBallvelocity $ (const (capLen3 100 vec))
+      sModBall $ modBallvelocity $ const kvec
       sModPendingevents $ (BallKicked:)
       sModLasttouch $ const $ Just $ playerid p
       sModPlayer (playerid p) $ modKicktimer $ const 1000
