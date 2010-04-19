@@ -211,8 +211,8 @@ updateBallPlay = do
       when (bx < 0) $ do -- throwin from the left
         let restartpos = (0, by)
         sModBallplay $ const $ OutOfPlayWaiting 1000 (ThrowIn restartpos)
-      when (bx > py) $ do -- throwin from the right
-        let restartpos = (py, by)
+      when (bx > px) $ do -- throwin from the right
+        let restartpos = (px, by)
         sModBallplay $ const $ OutOfPlayWaiting 1000 (ThrowIn restartpos)
       when (by < 0) $ do  -- corner kick or goal kick on bottom half
         if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 -- goal
