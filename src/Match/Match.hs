@@ -33,8 +33,6 @@ import Match.Internal.AI
 import Match.Internal.Actions
 import Match.Internal.Formation
 
-data TeamOwner = HumanOwner | AIOwner
-
 data MatchTextureSet = MatchTextureSet {
     pitchtexture      :: TextureObject
   , hometexture       :: TextureObject
@@ -46,11 +44,11 @@ data MatchTextureSet = MatchTextureSet {
   }
 
 playMatch :: MatchTextureSet -> Font -> Font -> (Swos.SWOSTeam, TeamOwner) -> (Swos.SWOSTeam, TeamOwner) -> IO ()
-playMatch texs f f2 (ht, _) (at, _) = do
+playMatch texs f f2 ht at = do
   let psize = (68, 105)
       contr = Nothing
   plist <- liftIO $ defineNewList Compile (drawPitch (pitchtexture texs) (16, 16) psize)
-  evalStateT runMatch (initMatchState plist psize (20, 40) texs (ht, at) contr f f2 (Swos.teamname ht) (Swos.teamname at))
+  evalStateT runMatch (initMatchState plist psize (20, 40) texs ht at contr f f2)
   putStrLn "Match played! Yay!"
   (w, h) <- liftIO $ getWindowSize
   setCamera ((0, 0), (w, h))
@@ -58,13 +56,13 @@ playMatch texs f f2 (ht, _) (at, _) = do
 initMatchState :: DisplayList 
                -> FRange -> FRange 
                -> MatchTextureSet 
-               -> (Swos.SWOSTeam, Swos.SWOSTeam) 
+               -> (Swos.SWOSTeam, TeamOwner) 
+               -> (Swos.SWOSTeam, TeamOwner) 
                -> Maybe PlayerID 
                -> Font -> Font
-               -> String -> String
                -> MatchState
-initMatchState plist psize cpos pltexs (ht, at) c f1 f2 tname1 tname2 = 
-  MatchState plist [] psize cpos (Team hps hf 0 tname1) (Team aps af 0 tname2) c BeforeKickoff 
+initMatchState plist psize cpos pltexs (ht, ho) (at, ao) c f1 f2 = 
+  MatchState plist [] psize cpos (Team hps hf 0 (Swos.teamname ht) ho) (Team aps af 0 (Swos.teamname at) ao) c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
              [] Nothing f1 f2 (mkStdGen 21)
   where hps = createPlayers True pltexs psize ht

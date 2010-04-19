@@ -38,11 +38,14 @@ type Formation = M.IntMap FRange
 
 type PlayerMap = M.IntMap Player
 
+data TeamOwner = HumanOwner | AIOwner
+
 data Team = Team {
     players    :: PlayerMap
   , formation  :: Formation
   , goals      :: Int
   , teamname   :: String
+  , teamowner  :: TeamOwner
 }
 $(deriveMods ''Team)
 
