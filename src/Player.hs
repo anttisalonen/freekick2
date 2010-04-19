@@ -13,10 +13,12 @@ data PlPosition = Goalkeeper | Defender | Midfielder | Attacker
 
 type PlayerID = (Int, Bool)
 
+type Skill = Float
+
 data PlayerSkills = PlayerSkills {
-    shootingskill :: Int
-  , passingskill  :: Int
-  , speedskill    :: Int
+    shootingskill :: Skill
+  , passingskill  :: Skill
+  , speedskill    :: Skill
   }
 $(deriveMods ''PlayerSkills)
 

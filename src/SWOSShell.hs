@@ -15,8 +15,8 @@ swosPositionToPosition p
   | Swos.isMidfielder p = Midfielder
   | otherwise           = Attacker
 
-swosSkillToSkill :: Int -> Int
-swosSkillToSkill = (*60) . (+1)
+swosSkillToSkill :: Int -> Skill
+swosSkillToSkill = (/1000) . fromIntegral  . (*60) . (+1)
 
 swosPlayerToPlayer :: Float -> Bool -> TextureObject -> TextureObject -> ImageInfo -> FRange -> FRange -> Swos.SWOSPlayer -> Player
 swosPlayerToPlayer inz home htex atex plshimg hsize (px, py) p = 
