@@ -1,6 +1,7 @@
 module Match.Internal.Actions(Action(..),
   PlAction,
   act,
+  actP,
   plact)
 where
 
@@ -24,6 +25,13 @@ act :: Player -> Action -> Match ()
 act p (Goto t) = goto t p
 act p (Kick t) = kick t p
 act _ Idle     = return ()
+
+actP :: PlayerID -> Action -> Match ()
+actP p a = do
+  s <- State.get
+  case findPlayer p s of
+    Nothing -> return ()
+    Just p  -> act p a
 
 goto :: FRange -> Player -> Match ()
 goto (x, y) pl = do
