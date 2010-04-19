@@ -40,14 +40,25 @@ goto (x, y) pl = do
   let (curx,  cury)  = plposition pl
       (diffx, diffy) = (curx - x, cury - y)
       c              = playerid pl
-  if abs diffx < plspeed pl && abs diffy < plspeed pl
-    then modify $ modPlayer c $ modPlposition (const (x, y))
-    else do
-      let ang = atan2 diffy diffx
-          xvel = cos ang * plspeed pl
-          yvel = sin ang * plspeed pl
-      modify $ modPlayer c $ modPlposition (goRight (-xvel))
-      modify $ modPlayer c $ modPlposition (goUp (-yvel))
+      addvec = if abs diffx < plspeed pl && abs diffy < plspeed pl
+                 then (-diffx, -diffy)
+                 else
+                   let ang = atan2 diffy diffx
+                       xvel = cos ang * plspeed pl
+                       yvel = sin ang * plspeed pl
+                   in (-xvel, -yvel)
+  modify $ modPlayer c $ modPlposition $ (add2 addvec)
+  s <- State.get
+  when (inPlay (ballplay s) &&
+        inDribbleDistance s pl && 
+        kicktimer pl <= 0 && 
+        len2 addvec > 0.00001 &&
+        len3 (ballvelocity (ball s)) < 25) $ do
+    -- liftIO $ putStrLn $ "Dribbling to velocity: " ++ show addvec
+    sModBall $ modBallposition ((*+*) (to3D addvec 0))
+    sModBall $ modBallvelocity (const nullFVector3)
+    sModPendingevents $ (BallKicked:)
+    sModLasttouch $ const $ Just $ playerid pl
 
 getRandomR :: (Random a) => (a, a) -> State StdGen a
 getRandomR v = State $ \s -> randomR v s
@@ -55,20 +66,23 @@ getRandomR v = State $ \s -> randomR v s
 getKickVec :: FVector3 -> Player -> Match FVector3
 getKickVec v p = do
   s <- State.get
-  let (x, y, z) = capLen3 60 v
+  let (x, y, z) = capLen3 40 v
       relskill = if len2 (x, y) < 20 && z < 2
                    then passingskill $ plskills p
                    else shootingskill $ plskills p
-  let xvarmax = abs x / 5
-  let yvarmax = abs y / 5
-  let zvarmax = abs z / 5
+      vlen = len3 (x, y, z)
+  let xvarmax = vlen * (0.5 * (1 - relskill))
+  let yvarmax = vlen * (0.5 * (1 - relskill))
+  let zvarmax = abs z * (0.5 * (1 - relskill))
   let (vc, g') = flip runState (randomgen s) $ do
                   x' <- getRandomR (-xvarmax, xvarmax)
                   y' <- getRandomR (-yvarmax, yvarmax)
                   z' <- getRandomR (0, zvarmax)
                   return (x + x', y + y', z + z')
   sModRandomgen $ const g'
-  return vc
+  -- liftIO $ putStrLn $ "Orig: " ++ (show $ capLen3 40 v)
+  -- liftIO $ putStrLn $ "New:  " ++ (show $ capLen3 40 vc)
+  return $ capLen3 40 vc
 
 kick :: FVector3 -> Player -> Match ()
 kick vec p = do

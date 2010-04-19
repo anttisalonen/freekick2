@@ -24,13 +24,27 @@ goUp n (x, y) = (x, y + n)
 goRight :: Float -> FRange -> FRange
 goRight n (x, y) = (x + n, y)
 
+kickDistance :: Float
+kickDistance = 1.2
+
+dribbleDistance :: Float
+dribbleDistance = 0.6
+
 inKickDistance :: MatchState -> Player -> Bool
 inKickDistance m p = 
   let (bx, by, bz) = ballposition (ball m)
       pp = plposition p
   in if bz > 0.8
        then False
-       else dist2 (bx, by) pp < 0.5
+       else dist2 (bx, by) pp < kickDistance
+
+inDribbleDistance :: MatchState -> Player -> Bool
+inDribbleDistance m p = 
+  let (bx, by, bz) = ballposition (ball m)
+      pp = plposition p
+  in if bz > 0.5
+       then False
+       else dist2 (bx, by) pp < dribbleDistance
 
 nearestToBall :: MatchState -> Player
 nearestToBall m =
@@ -141,5 +155,9 @@ pausedBallplay' :: BallPlay -> Bool
 pausedBallplay' (WaitForKickoff _) = True
 pausedBallplay' (OutOfPlay _ _)    = True
 pausedBallplay' _                  = False
+
+inPlay :: BallPlay -> Bool
+inPlay InPlay = True
+inPlay _      = False
 
 

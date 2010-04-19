@@ -50,7 +50,6 @@ playMatch texs f f2 ht at = do
       contr = Nothing
   plist <- liftIO $ defineNewList Compile (drawPitch (pitchtexture texs) (16, 16) psize)
   evalStateT runMatch (initMatchState plist psize (20, 40) texs ht at contr f f2)
-  putStrLn "Match played! Yay!"
   (w, h) <- liftIO $ getWindowSize
   setCamera ((0, 0), (w, h))
 
@@ -135,9 +134,9 @@ handleKeyEvents = do
           act p (Goto tgt)
           when ((xd, yd) /= (0, 0)) $ do
             when (SDLK_SPACE `elem` ks) $ do
-              act p (Kick (xd * 45.5, yd * 45.5, 1))
+              act p (Kick (xd * 10, yd * 10, 30))
             when (SDLK_RETURN `elem` ks) $ do
-              act p (Kick (xd * 9, yd * 9, 0))
+              act p (Kick (xd * 4, yd * 4, 0))
 
   return (SDLK_ESCAPE `elem` ks)
 
@@ -298,10 +297,6 @@ execAI = do
   let plactions = doAI s
   mapM_ plact plactions
 
-inPlay :: BallPlay -> Bool
-inPlay InPlay = True
-inPlay _      = False
-
 modFst :: (a -> a) -> (a, b) -> (a, b)
 modFst f (a, b) = (f a, b)
 
@@ -316,9 +311,9 @@ updateTimers = do
 
 controllable :: BallPlay -> Bool
 controllable InPlay                     = True
-controllable DoKickoff                  = True
+controllable DoKickoff                  = False
 controllable (RestartPlay (GoalKick _)) = False
-controllable (RestartPlay _)            = True
+controllable (RestartPlay _)            = False
 controllable _                          = False
 
 setControl :: Bool -> Match ()
