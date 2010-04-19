@@ -64,7 +64,7 @@ initMatchState :: DisplayList
 initMatchState plist psize cpos pltexs (ht, ho) (at, ao) c f1 f2 = 
   MatchState plist [] psize cpos (Team hps hf 0 (Swos.teamname ht) ho) (Team aps af 0 (Swos.teamname at) ao) c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
-             [] Nothing f1 f2 (mkStdGen 21)
+             [] Nothing f1 f2 (mkStdGen 21) (False, 0)
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps
@@ -160,7 +160,7 @@ drawMatch = do
   s <- State.get
   (w, h) <- liftIO $ getWindowSize
   let text = printf "%16s %d - %d %-16s" (hometeamname s) (homegoals s) (awaygoals s) (awayteamname s)
-      coords = (0, 50)
+      coords = (fromIntegral w / 2, 50)
   liftIO $ do
     clear [ColorBuffer, DepthBuffer]
     let cpos = cameraCenter (fromIntegral w) (fromIntegral h) s
@@ -170,6 +170,7 @@ drawMatch = do
     mapM_ drawPlayerShadow (allPlayers s)
     mapM_ drawSprite $ sortBy (compare `on` getDepth) (SB (ball s) : map SB (allPlayers s))
     when (pausedBallplay s) $ writeText w h (matchfont1 s) text coords
+    writeText w h (matchfont2 s) (printf "%d min" (floor (snd (matchtime s)) `div` (60 :: Int))) (50, fromIntegral h - 50)
     glSwapBuffers
 
 writeText :: Int -> Int -> Font -> String -> FRange -> IO ()
@@ -179,7 +180,7 @@ writeText w h f str (x, y) = do
   color $ Color3 0 0 (0 :: GLfloat)
   translate $ Vector3 (realToFrac x) (realToFrac y) (2 :: GLfloat)
   textlen <- getFontAdvance f str
-  translate $ Vector3 (fromIntegral w / 2 - realToFrac textlen / 2) 0 (0 :: GLfloat)
+  translate $ Vector3 (-(realToFrac textlen / 2)) 0 (0 :: GLfloat)
   renderFont f str FTGL.Front
 
 playerOnHisSide :: MatchState -> Player -> Bool
@@ -296,9 +297,21 @@ execAI = do
   let plactions = doAI s
   mapM_ plact plactions
 
+inPlay :: BallPlay -> Bool
+inPlay InPlay = True
+inPlay _      = False
+
+modFst :: (a -> a) -> (a, b) -> (a, b)
+modFst f (a, b) = (f a, b)
+
+modSnd :: (b -> b) -> (a, b) -> (a, b)
+modSnd f (a, b) = (a, f b)
+
 updateTimers :: Match ()
 updateTimers = do
   sModAllPlayers (modKicktimer (\t -> max 0 (t - fromIntegral frameTime)))
+  s <- State.get
+  when (inPlay (ballplay s)) $ sModMatchtime $ modSnd $ (+ ((fromIntegral frameTime / 1000) * 30))
 
 controllable :: BallPlay -> Bool
 controllable InPlay                     = True

@@ -65,6 +65,7 @@ data MatchState = MatchState {
   , matchfont1     :: Font
   , matchfont2     :: Font
   , randomgen      :: StdGen
+  , matchtime      :: (Bool, Float) -- half time?, seconds
   }
 $(deriveMods ''MatchState)
 
