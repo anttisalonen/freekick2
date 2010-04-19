@@ -50,8 +50,8 @@ nearestOPToBall m pl =
 nearestOPToPointwoGK :: MatchState -> FRange -> Player -> Player
 nearestOPToPointwoGK m p pl =
   if playerHome pl
-    then nearestToBallHwoGK m p
-    else nearestToBallAwoGK m p
+    then nearestToPointHwoGK m p
+    else nearestToPointAwoGK m p
 
 nearestHPToBall :: MatchState -> Player
 nearestHPToBall m =
@@ -62,12 +62,18 @@ nearestAPToBall m =
   head $ sortBy (comparing (distanceToBall m)) (M.elems $ awayplayers m)
 
 -- without goalkeeper
-nearestToBallHwoGK :: MatchState -> FRange -> Player
-nearestToBallHwoGK m p =
+nearestToBallHwoGK :: MatchState -> Player
+nearestToBallHwoGK m = nearestToPointHwoGK m (to2D $ ballposition $ ball m)
+
+nearestToBallAwoGK :: MatchState -> Player
+nearestToBallAwoGK m = nearestToPointAwoGK m (to2D $ ballposition $ ball m)
+
+nearestToPointHwoGK :: MatchState -> FRange -> Player
+nearestToPointHwoGK m p =
   head $ sortBy (comparing (\pl -> dist2 p (plposition pl))) (filter (\pl -> plpos pl /= Goalkeeper) $ M.elems $ homeplayers m)
 
-nearestToBallAwoGK :: MatchState -> FRange -> Player
-nearestToBallAwoGK m p =
+nearestToPointAwoGK :: MatchState -> FRange -> Player
+nearestToPointAwoGK m p =
   head $ sortBy (comparing (\pl -> dist2 p (plposition pl))) (filter (\pl -> plpos pl /= Goalkeeper) $ M.elems $ awayplayers m)
 
 distanceToBall :: MatchState -> Player -> Float
