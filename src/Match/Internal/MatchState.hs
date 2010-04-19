@@ -39,6 +39,7 @@ type Formation = M.IntMap FRange
 type PlayerMap = M.IntMap Player
 
 data TeamOwner = HumanOwner | AIOwner
+  deriving (Eq)
 
 data Team = Team {
     players    :: PlayerMap
