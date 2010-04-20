@@ -68,10 +68,13 @@ handleControls frametime evts = do
             when ((xd, yd) /= (0, 0)) $ do
               when (SDLK_SPACE `elem` ks) $ do
                 sModKickpower (+(fromIntegral frametime))
-                -- act p (Kick (xd * 10, yd * 10, 30))
-              when (SDLK_RETURN `elem` ks) $ do
-                act p (Kick (xd * 4, yd * 4, 0))
-              when (SDLK_SPACE `notElem` ks && (kickpower s > 0)) $ do
-                act p (Kick (xd * fromIntegral (kickpower s) / 100, yd * fromIntegral (kickpower s) / 100, fromIntegral (kickpower s) / 1000 * 30))
+              when ((SDLK_SPACE `notElem` ks && (kickpower s > 0)) || (kickpower s > 1000)) $ do
+                if kickpower s < 100
+                  then act p (Kick (xd * 4,
+                                    yd * 4,
+                                    0))
+                  else act p (Kick (xd * (200 + fromIntegral (kickpower s)) / 100, 
+                                    yd * (200 + fromIntegral (kickpower s)) / 100, 
+                                   (200 + fromIntegral (kickpower s)) / 1000 * 30))
                 sModKickpower $ const 0
 
