@@ -19,6 +19,7 @@ data PlayerSkills = PlayerSkills {
     shootingskill :: Skill
   , passingskill  :: Skill
   , speedskill    :: Skill
+  , controlskill  :: Skill
   }
 $(deriveMods ''PlayerSkills)
 
