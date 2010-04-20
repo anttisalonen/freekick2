@@ -65,7 +65,7 @@ initMatchState :: DisplayList
 initMatchState plist psize cpos pltexs (ht, ho) (at, ao) c f1 f2 = 
   MatchState plist [] psize cpos (Team hps hf 0 (Swos.teamname ht) ho) (Team aps af 0 (Swos.teamname at) ao) c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
-             [] Nothing f1 f2 (mkStdGen 21) (False, 0) False
+             [] Nothing f1 f2 (mkStdGen 21) (False, 0) False 0
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps
@@ -314,7 +314,7 @@ setControlledPlayer = do
 runMatch :: Match ()
 runMatch = do
   t1 <- liftIO $ getCPUTime
-  quitting <- handleInput
+  quitting <- handleInput frameTime
   if quitting
     then return ()
     else do

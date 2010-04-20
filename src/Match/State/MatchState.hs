@@ -68,6 +68,7 @@ data MatchState = MatchState {
   , randomgen      :: StdGen
   , matchtime      :: (Bool, Float) -- half time?, seconds
   , paused         :: Bool
+  , kickpower      :: Int
   }
 $(deriveMods ''MatchState)
 
