@@ -35,8 +35,13 @@ actP p a = do
     Nothing -> return ()
     Just pl  -> act pl a
 
+playerControlCoeff :: Player -> Float
+playerControlCoeff pl =
+  0.5 + 0.5 * (controlskill $ plskills pl)
+
 goto :: FRange -> Player -> Match ()
 goto (x, y) pl = do
+  s <- State.get
   let (curx,  cury)  = plposition pl
       (diffx, diffy) = (curx - x, cury - y)
       c              = playerid pl
@@ -47,18 +52,19 @@ goto (x, y) pl = do
                        xvel = cos ang * plspeed pl
                        yvel = sin ang * plspeed pl
                    in (-xvel, -yvel)
-  modify $ modPlayer c $ modPlposition $ (add2 addvec)
-  s <- State.get
-  when (inPlay (ballplay s) &&
+      dribbling = (inPlay (ballplay s) &&
         inDribbleDistance s pl && 
         kicktimer pl <= 0 && 
         len2 addvec > 0.00001 &&
-        len3 (ballvelocity (ball s)) < 25) $ do
+        len3 (ballvelocity (ball s)) < 25)
+      runvec = if dribbling then addvec `mul2` playerControlCoeff pl else addvec
+  when dribbling $ do
     -- liftIO $ putStrLn $ "Dribbling to velocity: " ++ show addvec
-    sModBall $ modBallposition ((*+*) (to3D addvec 0))
-    sModBall $ modBallvelocity (const nullFVector3)
+    sModBall $ modBallposition $ const $ to3D (plposition pl `add2` (addvec `mul2` 3)) 0
+    -- sModBall $ modBallvelocity (const nullFVector3)
     sModPendingevents $ (BallKicked:)
     sModLasttouch $ const $ Just $ playerid pl
+  modify $ modPlayer c $ modPlposition $ add2 runvec
 
 getRandomR :: (Random a) => (a, a) -> State StdGen a
 getRandomR v = State $ \s -> randomR v s
