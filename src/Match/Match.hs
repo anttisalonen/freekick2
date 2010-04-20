@@ -169,9 +169,30 @@ drawMatch = do
     drawBallShadow $ ball s
     mapM_ drawPlayerShadow (allPlayers s)
     mapM_ drawSprite $ sortBy (compare `on` getDepth) (SB (ball s) : map SB (allPlayers s))
+    case controlledpl s of
+      Nothing            -> return ()
+      Just i@(pid, _) -> case findPlayer i s of
+                              Nothing -> return ()
+                              Just pl -> do
+                                let (plx, ply) = plposition pl
+                                writeOnPitch (matchfont2 s) (show pid) (plx, ply + 2)
+    -- writeTexts come in last, as they reset the camera.
     when (pausedBallplay s) $ writeText w h (matchfont1 s) text coords
     writeText w h (matchfont2 s) (printf "%d min" (floor (snd (matchtime s)) `div` (60 :: Int))) (50, fromIntegral h - 50)
     glSwapBuffers
+
+uniformScale :: GLfloat -> IO ()
+uniformScale n = scale n n n
+
+writeOnPitch :: Font -> String -> FRange -> IO ()
+writeOnPitch f str (x, y) = do
+  loadIdentity
+  color $ Color3 1 1 (1 :: GLfloat)
+  translate $ Vector3 (realToFrac x) (realToFrac y) (2 :: GLfloat)
+  uniformScale (1 / camZoomLevel)
+  textlen <- getFontAdvance f str
+  translate $ Vector3 (-(realToFrac textlen / 2)) 0 (0 :: GLfloat)
+  renderFont f str FTGL.Front
 
 writeText :: Int -> Int -> Font -> String -> FRange -> IO ()
 writeText w h f str (x, y) = do
