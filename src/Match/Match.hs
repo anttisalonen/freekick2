@@ -5,7 +5,6 @@ where
 
 import Control.Monad
 import Control.Monad.State as State
-import Data.Maybe
 import Data.List
 import qualified Data.IntMap as M
 import System.CPUTime
@@ -13,6 +12,7 @@ import Data.Word
 import Data.Function
 import Text.Printf
 import System.Random
+import Control.Applicative
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
@@ -65,7 +65,7 @@ initMatchState :: DisplayList
 initMatchState plist psize cpos pltexs (ht, ho) (at, ao) c f1 f2 = 
   MatchState plist [] psize cpos (Team hps hf 0 (Swos.teamname ht) ho) (Team aps af 0 (Swos.teamname at) ao) c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
-             [] Nothing f1 f2 (mkStdGen 21) (False, 0)
+             [] Nothing f1 f2 (mkStdGen 21) (False, 0) False
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps
@@ -93,25 +93,6 @@ createPlayers home texs psize t =
                                      (humandrawsize texs) 
                                      psize) 
                  pllist))
-
-keyChanges :: [SDL.Event] -> [(SDLKey, Bool)]
-keyChanges = catMaybes . map f
-  where f (KeyDown (Keysym n _ _)) = Just (n, True)
-        f (KeyUp   (Keysym n _ _)) = Just (n, False)
-        f _                        = Nothing
-
-updateKeyMap :: [(SDLKey, Bool)] -> [SDLKey] -> [SDLKey]
-updateKeyMap []              m = m
-updateKeyMap ((k, True):ns)  m = updateKeyMap ns (k:m)
-updateKeyMap ((k, False):ns) m = updateKeyMap ns (filter (/= k) m)
-
-fetchKeyEvents :: Match Bool
-fetchKeyEvents = do
-  evts <- liftIO $ pollAllSDLEvents
-  sModCurrkeys $ updateKeyMap (keyChanges evts)
-  s <- State.get
-  let ks = currkeys s
-  return (SDLK_ESCAPE `elem` ks)
 
 frameTime :: Word32 -- milliseconds
 frameTime = 10
@@ -333,18 +314,19 @@ setControlledPlayer = do
 runMatch :: Match ()
 runMatch = do
   t1 <- liftIO $ getCPUTime
-  quitting <- fetchKeyEvents
+  quitting <- handleInput
   if quitting
     then return ()
     else do
-      handleControls
       drawMatch
       setControlledPlayer
-      execAI
-      handleMatchEvents
-      updateBallPosition
-      updateBallPlay
-      updateTimers
+      pause <- paused <$> State.get
+      when (not pause) $ do
+        execAI
+        handleMatchEvents
+        updateBallPosition
+        updateBallPlay
+        updateTimers
       t2 <- liftIO $ getCPUTime
       let tdiff = floor $ fromIntegral (t2 - t1) * (1e-9 :: Float)
       when (tdiff < frameTime) $ liftIO $ SDL.delay (frameTime - tdiff)
