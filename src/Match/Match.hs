@@ -33,6 +33,7 @@ import Match.State.MatchBase
 import Match.State.AI
 import Match.State.Actions
 import Match.State.Formation
+import Match.State.Controls
 
 data MatchTextureSet = MatchTextureSet {
     pitchtexture      :: TextureObject
@@ -104,40 +105,12 @@ updateKeyMap []              m = m
 updateKeyMap ((k, True):ns)  m = updateKeyMap ns (k:m)
 updateKeyMap ((k, False):ns) m = updateKeyMap ns (filter (/= k) m)
 
-handleKeyEvents :: Match Bool
-handleKeyEvents = do
+fetchKeyEvents :: Match Bool
+fetchKeyEvents = do
   evts <- liftIO $ pollAllSDLEvents
   sModCurrkeys $ updateKeyMap (keyChanges evts)
   s <- State.get
   let ks = currkeys s
-  when (SDLK_UP `elem` ks) $ sModCampos (goUp 1)
-  when (SDLK_DOWN `elem` ks) $ sModCampos (goUp (-1))
-  when (SDLK_LEFT `elem` ks) $ sModCampos (goRight (-1))
-  when (SDLK_RIGHT `elem` ks) $ sModCampos (goRight 1)
-  case controlledpl s of
-    Nothing -> return ()
-    Just c  -> 
-      case findPlayer c s of
-        Nothing -> return ()
-        Just p  -> do
-          let xd = if (SDLK_d `elem` ks)
-                     then 10
-                     else if (SDLK_a `elem` ks)
-                            then -10
-                            else 0
-              yd = if (SDLK_w `elem` ks)
-                     then 10
-                     else if (SDLK_s `elem` ks)
-                            then -10
-                            else 0
-              tgt = (xd, yd) `add2` (plposition p)
-          act p (Goto tgt)
-          when ((xd, yd) /= (0, 0)) $ do
-            when (SDLK_SPACE `elem` ks) $ do
-              act p (Kick (xd * 10, yd * 10, 30))
-            when (SDLK_RETURN `elem` ks) $ do
-              act p (Kick (xd * 4, yd * 4, 0))
-
   return (SDLK_ESCAPE `elem` ks)
 
 frameTime :: Word32 -- milliseconds
@@ -360,10 +333,11 @@ setControlledPlayer = do
 runMatch :: Match ()
 runMatch = do
   t1 <- liftIO $ getCPUTime
-  quitting <- handleKeyEvents
+  quitting <- fetchKeyEvents
   if quitting
     then return ()
     else do
+      handleControls
       drawMatch
       setControlledPlayer
       execAI
