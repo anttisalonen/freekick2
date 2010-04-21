@@ -15,7 +15,9 @@ import Match.State.Actions
 import Match.State.Formation
 
 offBallAI :: MatchState -> Player -> PlAction
-offBallAI m pl | nearestOwnToBall m pl == pl = 
+offBallAI m pl | plpos (nearestOppToBall m pl) == Goalkeeper =
+    (pl, Goto (formationPositionAbs m pl))
+offBallAI m pl | nearestOwnToBall m pl == pl && kicktimer pl <= 0 = 
     (pl, Goto (ballCoords m))
 offBallAI m pl | supportingDefense m pl = 
     (pl, Goto (defenseSupporterCoords m pl))
@@ -28,7 +30,7 @@ supportingOffense m pl =
 
 supportingDefense :: MatchState -> Player -> Bool
 supportingDefense m pl =
-  nearestIsHP m /= playerHome pl && supportingPlayer m pl
+  plpos pl /= Goalkeeper && nearestIsHP m /= playerHome pl && supportingPlayer m pl
 
 supportingPlayer :: MatchState -> Player -> Bool
 supportingPlayer m pl = pl == (opsToBallByDist m pl !! 1)
@@ -51,7 +53,7 @@ getPassPower recv pl =
   let dv = recv `diff2` (plposition pl)
   in if len2 dv < 20
        then to3D ((recv `diff2` (plposition pl)) `mul2` 4) 0
-       else to3D ((recv `diff2` (plposition pl)) `mul2` 2) 8
+       else to3D ((recv `diff2` (plposition pl)) `mul2` 1.5) (len2 dv / 4)
 
 pass :: Player -> Player -> PlAction
 pass receiver passer = 
@@ -149,7 +151,13 @@ restart m _ pl =
     else snd $ bestPassTarget m pl
 
 onBallAI :: MatchState -> Player -> PlAction
-onBallAI m pl = 
+onBallAI m pl | plpos pl == Goalkeeper =
+  if distanceToBall m (nearestOppToBall m pl) < 10
+    then (pl, Idle)
+    else generalOnBallAI m pl
+onBallAI m pl | otherwise = generalOnBallAI m pl
+
+generalOnBallAI m pl = 
   let passact    = bestPassTarget m pl
       dribbleact = bestDribbleTarget m pl
       shootact   = shootScore m pl
