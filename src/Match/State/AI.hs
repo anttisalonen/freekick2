@@ -15,10 +15,37 @@ import Match.State.Actions
 import Match.State.Formation
 
 offBallAI :: MatchState -> Player -> PlAction
-offBallAI m pl = 
-  if nearestOPToBall m pl == pl
-    then (pl, Goto (ballCoords m))
-    else (pl, Goto (formationPositionAbs m pl))
+offBallAI m pl | nearestOwnToBall m pl == pl = 
+    (pl, Goto (ballCoords m))
+offBallAI m pl | supportingDefense m pl = 
+    (pl, Goto (defenseSupporterCoords m pl))
+offBallAI m pl | otherwise =
+    (pl, Goto (formationPositionAbs m pl))
+
+supportingOffense :: MatchState -> Player -> Bool
+supportingOffense m pl =
+  not (nearestIsHP m) /= playerHome pl && supportingPlayer m pl
+
+supportingDefense :: MatchState -> Player -> Bool
+supportingDefense m pl =
+  nearestIsHP m /= playerHome pl && supportingPlayer m pl
+
+supportingPlayer :: MatchState -> Player -> Bool
+supportingPlayer m pl = pl == (opsToBallByDist m pl !! 1)
+
+defenseSupporterCoords :: MatchState -> Player -> FRange
+defenseSupporterCoords m pl = 
+  let og = ownGoalAbs m pl
+      op = plposition $ nearestOppToBall m pl
+  in onLine 3 op og
+
+-- point between points v1 and v2,
+-- with distance n from v1.
+onLine :: Float -> FRange -> FRange -> FRange
+onLine n v1 v2 =
+  let dv = v1 `diff2` v2
+  in v1 `diff2` ((normalize2 (neg2 dv)) `mul2` n)
+
 
 pass :: Player -> Player -> PlAction
 pass receiver passer = 

@@ -56,9 +56,15 @@ nearestToBall m =
        then hp
        else ap'
 
-nearestOPToBall :: MatchState -> Player -> Player
-nearestOPToBall m pl =
+nearestOwnToBall :: MatchState -> Player -> Player
+nearestOwnToBall m pl =
   if playerHome pl
+    then nearestHPToBall m
+    else nearestAPToBall m
+
+nearestOppToBall :: MatchState -> Player -> Player
+nearestOppToBall m pl =
+  if not $ playerHome pl
     then nearestHPToBall m
     else nearestAPToBall m
 
@@ -69,12 +75,27 @@ nearestOPToPointwoGK m p pl =
     else nearestToPointAwoGK m p
 
 nearestHPToBall :: MatchState -> Player
-nearestHPToBall m =
-  head $ sortBy (comparing (distanceToBall m)) (M.elems $ homeplayers m)
+nearestHPToBall = head . hpsToBallByDist
 
 nearestAPToBall :: MatchState -> Player
-nearestAPToBall m =
-  head $ sortBy (comparing (distanceToBall m)) (M.elems $ awayplayers m)
+nearestAPToBall = head . apsToBallByDist
+
+nearestIsHP :: MatchState -> Bool
+nearestIsHP m = distanceToBall m h <= distanceToBall m a
+  where h = nearestHPToBall m
+        a = nearestAPToBall m
+
+opsToBallByDist :: MatchState -> Player -> [Player]
+opsToBallByDist m pl =
+  if playerHome pl
+    then hpsToBallByDist m
+    else apsToBallByDist m
+
+hpsToBallByDist :: MatchState -> [Player]
+hpsToBallByDist m = sortBy (comparing (distanceToBall m)) (M.elems $ homeplayers m)
+
+apsToBallByDist :: MatchState -> [Player]
+apsToBallByDist m = sortBy (comparing (distanceToBall m)) (M.elems $ awayplayers m)
 
 -- without goalkeeper
 nearestToBallHwoGK :: MatchState -> Player
@@ -128,6 +149,13 @@ opponentPlayers m pl =
 
 allPlayers :: MatchState -> [Player]
 allPlayers m = M.elems (homeplayers m) ++ (M.elems (awayplayers m))
+
+ownGoalAbs :: MatchState -> Player -> FRange
+ownGoalAbs m pl =
+  oppositeGoalAbs' (pitchsize m) (not $ playerHome pl)
+
+ownGoalAbs' :: FRange -> Bool -> FRange
+ownGoalAbs' ps home = oppositeGoalAbs' ps (not home)
 
 oppositeGoalAbs :: MatchState -> Player -> FRange
 oppositeGoalAbs m pl =
