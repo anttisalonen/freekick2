@@ -332,7 +332,7 @@ runMatch = do
       t2 <- liftIO $ getCPUTime
       let tdiff = floor $ fromIntegral (t2 - t1) * (1e-9 :: Float)
           dt'   = floor (dt * 1000)
-      when (tdiff < dt') $ liftIO $ SDL.delay (dt' - tdiff)
-      when (tdiff > dt') $ liftIO $ putStrLn $ "Warning: step took " ++ show tdiff ++ " ms"
+      when (tdiff + 1 < dt') $ liftIO $ SDL.delay (dt' - tdiff)
+      when (tdiff - 3 > dt') $ liftIO $ putStrLn $ "Warning: step took " ++ show tdiff ++ " ms"
       runMatch
 
