@@ -27,16 +27,16 @@ updateKeyMap ((k, True):ns)  m = updateKeyMap ns (k:m)
 updateKeyMap ((k, False):ns) m = updateKeyMap ns (filter (/= k) m)
 
 handleInput :: (Integral a) => a -> Match Bool
-handleInput frametime = do
+handleInput dt = do
   evts <- liftIO $ pollAllSDLEvents
   sModCurrkeys $ updateKeyMap (keyChanges evts)
   s <- State.get
   let ks = currkeys s
-  handleControls frametime evts
+  handleControls dt evts
   return (SDLK_ESCAPE `elem` ks)
 
 handleControls :: (Integral a) => a -> [SDL.Event] -> Match ()
-handleControls frametime evts = do
+handleControls dt evts = do
   s <- State.get
   let ks = currkeys s
   when (keyWasPressed SDLK_p evts) $ do
@@ -62,7 +62,7 @@ handleControls frametime evts = do
             act p (Goto tgt)
             when ((xd, yd) /= (0, 0)) $ do
               when (SDLK_RCTRL `elem` ks) $ do
-                sModKickpower (+(fromIntegral frametime))
+                sModKickpower (+(fromIntegral dt))
               when ((SDLK_RCTRL `notElem` ks && (kickpower s > 0)) || (kickpower s > 1000)) $ do
                 if kickpower s < 100
                   then act p (Kick (xd * 4,

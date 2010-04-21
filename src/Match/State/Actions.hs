@@ -42,25 +42,26 @@ playerControlCoeff pl =
 goto :: FRange -> Player -> Match ()
 goto (x, y) pl = do
   s <- State.get
+  let dt = frametime s
   let (curx,  cury)  = plposition pl
       (diffx, diffy) = (curx - x, cury - y)
       c              = playerid pl
-      addvec = if abs diffx < plspeed pl && abs diffy < plspeed pl
+      addvec = if abs diffx < plspeed dt pl && abs diffy < plspeed dt pl
                  then (-diffx, -diffy)
                  else
                    let ang = atan2 diffy diffx
-                       xvel = cos ang * plspeed pl
-                       yvel = sin ang * plspeed pl
+                       xvel = cos ang * plspeed dt pl
+                       yvel = sin ang * plspeed dt pl
                    in (-xvel, -yvel)
       dribbling = (inPlay (ballplay s) &&
         inDribbleDistance s pl && 
         kicktimer pl <= 0 && 
-        len2 addvec > 0.00001 &&
+        len2 addvec > 0.0000001 &&
         len3 (ballvelocity (ball s)) < 25)
       runvec = if dribbling then addvec `mul2` playerControlCoeff pl else addvec
   when dribbling $ do
     -- liftIO $ putStrLn $ "Dribbling to velocity: " ++ show addvec
-    sModBall $ modBallposition $ const $ to3D (plposition pl `add2` (addvec `mul2` 3)) 0
+    sModBall $ modBallposition $ const $ to3D (plposition pl `add2` (addvec `mul2` 2)) 0
     -- sModBall $ modBallvelocity (const nullFVector3)
     sModPendingevents $ (BallKicked:)
     sModLasttouch $ const $ Just $ playerid pl

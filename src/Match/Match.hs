@@ -8,7 +8,6 @@ import Control.Monad.State as State
 import Data.List
 import qualified Data.IntMap as M
 import System.CPUTime
-import Data.Word
 import Data.Function
 import Text.Printf
 import System.Random
@@ -65,7 +64,7 @@ initMatchState :: DisplayList
 initMatchState plist psize cpos pltexs (ht, ho) (at, ao) c f1 f2 = 
   MatchState plist [] psize cpos (Team hps hf 0 (Swos.teamname ht) ho) (Team aps af 0 (Swos.teamname at) ao) c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
-             [] Nothing f1 f2 (mkStdGen 21) (False, 0) False 0
+             [] Nothing f1 f2 (mkStdGen 21) (False, 0) False 0 0.020
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps
@@ -93,9 +92,6 @@ createPlayers home texs psize t =
                                      (humandrawsize texs) 
                                      psize) 
                  pllist))
-
-frameTime :: Word32 -- milliseconds
-frameTime = 10
 
 camZoomLevel :: (Num a) => a
 camZoomLevel = 20
@@ -168,6 +164,7 @@ updateBallPlay :: Match ()
 updateBallPlay = do
   s <- State.get
   let (px, py) = pitchsize s
+      frameTime = floor $ 1000 * frametime s
   case ballplay s of
     BeforeKickoff -> do
       when (all (playerOnHisSide s) (allPlayers s)) $
@@ -177,7 +174,7 @@ updateBallPlay = do
       sModBall $ modBallvelocity $ const nullFVector3
       if timer < 0
         then sModBallplay (const DoKickoff)
-        else sModBallplay (const $ WaitForKickoff (timer - fromIntegral frameTime))
+        else sModBallplay (const $ WaitForKickoff (timer - frameTime))
     DoKickoff -> do
       return () -- updated by handleMatchEvent BallKicked
     InPlay -> do
@@ -230,14 +227,14 @@ updateBallPlay = do
                 sModBallplay $ const $ OutOfPlayWaiting 1000 (CornerKick restartpos)
     OutOfPlayWaiting timer restart -> 
       if timer > 0
-        then sModBallplay $ const $ OutOfPlayWaiting (timer - fromIntegral frameTime) restart
+        then sModBallplay $ const $ OutOfPlayWaiting (timer - frameTime) restart
         else sModBallplay $ const $ OutOfPlay 1000 restart
     OutOfPlay timer restart ->
       if timer > 0
         then do
           when (timer < 1000) $ sModBall $ modBallposition $ const $ to3D (getRestartPoint restart) 0
           sModBall $ modBallvelocity $ const nullFVector3
-          sModBallplay $ const $ OutOfPlay (timer - fromIntegral frameTime) restart
+          sModBallplay $ const $ OutOfPlay (timer - frameTime) restart
         else sModBallplay $ const $ RestartPlay restart
     RestartPlay _ -> do
       when ((to2D $ ballposition (ball s)) `inside2s` ((0, 0), (pitchsize s))) $
@@ -260,8 +257,8 @@ handleMatchEvents = do
 updateBallPosition :: Match ()
 updateBallPosition = do
   s <- State.get
-  let dt = fromIntegral frameTime / 1000
-  sModBall $ modBallposition (*+* ((ballvelocity (ball s)) *** (fromIntegral frameTime / 1000)))
+  let dt = frametime s
+  sModBall $ modBallposition (*+* ((ballvelocity (ball s)) *** dt))
   sModBall $ collCheckBall
   sModBall $ gravitateBall dt
   sModBall $ slowDownBall dt
@@ -280,9 +277,10 @@ modSnd f (a, b) = (a, f b)
 
 updateTimers :: Match ()
 updateTimers = do
-  sModAllPlayers (modKicktimer (\t -> max 0 (t - fromIntegral frameTime)))
   s <- State.get
-  when (inPlay (ballplay s)) $ sModMatchtime $ modSnd $ (+ ((fromIntegral frameTime / 1000) * 30))
+  let dt = frametime s
+  sModAllPlayers (modKicktimer (\t -> max 0 (t - floor (dt * 1000))))
+  when (inPlay (ballplay s)) $ sModMatchtime $ modSnd $ (+ (dt * 30))
 
 controllable :: BallPlay -> Bool
 controllable InPlay                     = True
@@ -314,7 +312,8 @@ setControlledPlayer = do
 runMatch :: Match ()
 runMatch = do
   t1 <- liftIO $ getCPUTime
-  quitting <- handleInput frameTime
+  dt <- frametime <$> State.get
+  quitting <- handleInput (floor (1000 * dt) :: Int)
   if quitting
     then return ()
     else do
@@ -329,6 +328,8 @@ runMatch = do
         updateTimers
       t2 <- liftIO $ getCPUTime
       let tdiff = floor $ fromIntegral (t2 - t1) * (1e-9 :: Float)
-      when (tdiff < frameTime) $ liftIO $ SDL.delay (frameTime - tdiff)
+          dt'   = floor (dt * 1000)
+      when (tdiff < dt') $ liftIO $ SDL.delay (dt' - tdiff)
+      when (tdiff > dt') $ liftIO $ putStrLn $ "Warning: step took " ++ show tdiff ++ " ms"
       runMatch
 
