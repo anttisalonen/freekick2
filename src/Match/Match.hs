@@ -236,9 +236,12 @@ updateBallPlay = do
           sModBall $ modBallvelocity $ const nullFVector3
           sModBallplay $ const $ OutOfPlay (timer - frameTime) restart
         else sModBallplay $ const $ RestartPlay restart
-    RestartPlay _ -> do
+    RestartPlay restart -> do
       when ((to2D $ ballposition (ball s)) `inside2s` ((0, 0), (pitchsize s))) $
         sModBallplay $ const InPlay
+      -- in case the ball is kicked further away from pitch
+      when (not $ (to2D $ ballposition (ball s)) `inside2s` ((-10, -10), (pitchsize s) `mul2` 1.1)) $
+        sModBallplay $ const $ OutOfPlayWaiting 1000 restart 
 
 handleMatchEvent :: MatchEvent -> Match ()
 handleMatchEvent BallKicked = do
