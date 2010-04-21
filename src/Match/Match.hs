@@ -168,7 +168,7 @@ updateBallPlay = do
   case ballplay s of
     BeforeKickoff -> do
       when (all (playerOnHisSide s) (allPlayers s)) $
-        sModBallplay (const $ WaitForKickoff 1000)
+        sModBallplay (const $ WaitForKickoff 2000)
     WaitForKickoff timer -> do
       when (timer < 1000) $ sModBall $ modBallposition $ const $ to3D (px / 2, py / 2) 0
       sModBall $ modBallvelocity $ const nullFVector3

@@ -16,7 +16,7 @@ import Match.State.MatchState
 
 plspeed :: Float -> Player -> Float
 plspeed dt p = 20 * plsp * dt
-  where plsp = 0.5 + shootingskill (plskills p) * 0.5 
+  where plsp = 0.7 + 0.3 * shootingskill (plskills p)
 
 goUp :: Float -> FRange -> FRange
 goUp n (x, y) = (x, y + n)
@@ -28,7 +28,7 @@ kickDistance :: Float
 kickDistance = 1.2
 
 dribbleDistance :: Float
-dribbleDistance = 0.6
+dribbleDistance = 0.9
 
 inKickDistance :: MatchState -> Player -> Bool
 inKickDistance m p = 
@@ -188,4 +188,10 @@ inPlay :: BallPlay -> Bool
 inPlay InPlay = True
 inPlay _      = False
 
+canDribble :: MatchState -> Player -> Bool
+canDribble m pl =
+  inPlay (ballplay m) &&
+        inDribbleDistance m pl && 
+        kicktimer pl <= 0 && 
+        len3 (ballvelocity (ball m)) < 25
 

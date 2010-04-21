@@ -37,7 +37,7 @@ actP p a = do
 
 playerControlCoeff :: Player -> Float
 playerControlCoeff pl =
-  0.5 + 0.5 * (controlskill $ plskills pl)
+  0.6 + 0.4 * (controlskill $ plskills pl)
 
 goto :: FRange -> Player -> Match ()
 goto (x, y) pl = do
@@ -53,11 +53,7 @@ goto (x, y) pl = do
                        xvel = cos ang * plspeed dt pl
                        yvel = sin ang * plspeed dt pl
                    in (-xvel, -yvel)
-      dribbling = (inPlay (ballplay s) &&
-        inDribbleDistance s pl && 
-        kicktimer pl <= 0 && 
-        len2 addvec > 0.0000001 &&
-        len3 (ballvelocity (ball s)) < 25)
+      dribbling = canDribble s pl && len2 addvec > 0.0000001
       runvec = if dribbling then addvec `mul2` playerControlCoeff pl else addvec
   when dribbling $ do
     -- liftIO $ putStrLn $ "Dribbling to velocity: " ++ show addvec
@@ -73,7 +69,7 @@ getRandomR v = State $ \s -> randomR v s
 getKickVec :: FVector3 -> Player -> Match FVector3
 getKickVec v p = do
   s <- State.get
-  let (x, y, z) = capLen3 40 v
+  let (x, y, z) = capLen3 50 v
       relskill = if len2 (x, y) < 20 && z < 2
                    then passingskill $ plskills p
                    else shootingskill $ plskills p
@@ -89,7 +85,7 @@ getKickVec v p = do
   sModRandomgen $ const g'
   -- liftIO $ putStrLn $ "Orig: " ++ (show $ capLen3 40 v)
   -- liftIO $ putStrLn $ "New:  " ++ (show $ capLen3 40 vc)
-  return $ capLen3 40 vc
+  return $ capLen3 50 vc
 
 kick :: FVector3 -> Player -> Match ()
 kick vec p = do

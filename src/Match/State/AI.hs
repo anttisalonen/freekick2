@@ -46,6 +46,12 @@ onLine n v1 v2 =
   let dv = v1 `diff2` v2
   in v1 `diff2` ((normalize2 (neg2 dv)) `mul2` n)
 
+getPassPower :: FRange -> Player -> FVector3
+getPassPower recv pl = 
+  let dv = recv `diff2` (plposition pl)
+  in if len2 dv < 20
+       then to3D ((recv `diff2` (plposition pl)) `mul2` 4) 0
+       else to3D ((recv `diff2` (plposition pl)) `mul2` 2) 8
 
 pass :: Player -> Player -> PlAction
 pass receiver passer = 
@@ -65,8 +71,15 @@ flipCompare a b
   | otherwise = EQ
 
 passValue :: MatchState -> Player -> Player -> (Float, Player)
-passValue m _ receiver =
-  (shootPositionValue m (playerHome receiver) (plposition receiver), receiver)
+passValue m passer receiver =
+  let sval  = shootPositionValue m (playerHome receiver) (plposition receiver)
+      dist = dist2 (plposition passer) (plposition receiver)
+  in (sval + ratePassDist dist, receiver)
+
+-- range: -50 .. 50
+ratePassDist :: Float -> Float
+ratePassDist d | d < 20    = 0.5 * (10 * d - 100)
+               | otherwise = 0.5 * (200 / (-80) * d + 150)
 
 -- range: 0 .. 100
 shootPositionValue :: MatchState -> Bool -> FRange -> Float
@@ -148,19 +161,17 @@ shootScore m pl =
    where 
      vecttogoal = oppositeGoalAbs m pl `diff2` plposition pl
      scorepts =
-       shootPositionValue m (playerHome pl) (plposition pl)
+       2 * shootPositionValue m (playerHome pl) (plposition pl)
      kickpwr =
-       to3D (vecttogoal `mul2` 1.5) 3
+       to3D (vecttogoal `mul2` 5) 8
 
 bestDribbleTarget :: MatchState -> Player -> (Float, PlAction)
-bestDribbleTarget m pl = (1, dribble (oppositeGoalAbs m pl) pl)
+bestDribbleTarget m pl = (dpts, dribble (oppositeGoalAbs m pl) pl)
+  where dpts | not (canDribble m pl) = 0
+             | otherwise             = 5 * distanceToBall m (nearestOppToBall m pl)
 
 dribble :: FRange -> Player -> PlAction
-dribble _ pl = (pl, Idle)
-
-getPassPower :: FRange -> Player -> FVector3
-getPassPower recv pl = 
-  to3D ((recv `diff2` (plposition pl)) `mul2` 5) 0
+dribble p pl = (pl, Goto p)
 
 kickoff :: MatchState -> Player -> PlAction
 kickoff m p = 
