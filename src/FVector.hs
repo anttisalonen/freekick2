@@ -55,6 +55,11 @@ capLen3 n v =
        then normalize3 v *** n
        else v
 
+normalize2 :: FRange -> FRange
+normalize2 v@(x, y) =
+  let l = len2 v
+  in (x / l, y / l)
+
 dist2squared :: FRange -> FRange -> Float
 dist2squared (x1, y1) (x2, y2) = ((x2 - x1)**2) + ((y2 - y1)**2)
 
@@ -75,6 +80,9 @@ mul2 (x, y) s = (x * s, y * s)
 
 to3D :: FRange -> Float -> FVector3
 to3D (x, y) z = (x, y, z)
+
+neg2 :: FRange -> FRange
+neg2 (x, y) = (-x, -y)
 
 -- 's' as in "strict".
 inside2s :: FRange -> Rectangle -> Bool
