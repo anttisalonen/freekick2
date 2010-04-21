@@ -28,7 +28,7 @@ kickDistance :: Float
 kickDistance = 1.2
 
 dribbleDistance :: Float
-dribbleDistance = 0.9
+dribbleDistance = 0.8
 
 inKickDistance :: MatchState -> Player -> Bool
 inKickDistance m p = 
@@ -191,7 +191,7 @@ inPlay _      = False
 canDribble :: MatchState -> Player -> Bool
 canDribble m pl =
   inPlay (ballplay m) &&
-        inDribbleDistance m pl && 
-        kicktimer pl <= 0 && 
-        len3 (ballvelocity (ball m)) < 25
+  inDribbleDistance m pl && 
+  kicktimer pl <= 0 && 
+  len3 (ballvelocity (ball m)) < 50
 
