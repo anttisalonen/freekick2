@@ -69,7 +69,7 @@ createFormation home pls' =
 formationPosition :: MatchState -> Player -> FRange
 formationPosition m pl =
   let (kx, ky) = kickoffPosition m pl
-  in if playerHome pl
+  in if playerHome pl == homeattacksup m
        then (kx, ky * 1.5)
        else (kx, 1 - (1 - ky) * 1.2)
 
@@ -81,12 +81,15 @@ kickoffPosition :: MatchState -> Player -> FRange
 kickoffPosition m pl =
   let (plnum, plhome) = playerid pl 
       sourcemap       = if plhome then homeformation m else awayformation m
-  in M.findWithDefault (0.5, 0.5) plnum sourcemap
+  in checkFlip m $ M.findWithDefault (0.5, 0.5) plnum sourcemap
 
 kickoffPositionAbs :: MatchState -> Player -> FRange
 kickoffPositionAbs m pl =
   let rel = kickoffPosition m pl
   in relToAbs m rel
+
+checkFlip :: MatchState -> FRange -> FRange
+checkFlip m = if not (homeattacksup m) then flipSide else id
 
 shouldDoKickoff :: MatchState -> Player -> Bool
 shouldDoKickoff m pl = kickoffer m == playerid pl
@@ -96,16 +99,18 @@ shouldAssistKickoff m pl = kickoffAssister m == playerid pl
 
 kickoffer :: MatchState -> PlayerID
 kickoffer m =
-  let forws = filter (\p -> plpos p == Attacker) (M.elems $ homeplayers m)
-      mids = filter (\p -> plpos p == Midfielder) (M.elems $ homeplayers m)
-      defs = filter (\p -> plpos p == Defender) (M.elems $ homeplayers m)
+  let forws = filter (\p -> plpos p == Attacker) (M.elems $ pls m)
+      mids = filter (\p -> plpos p == Midfielder) (M.elems $ pls m)
+      defs = filter (\p -> plpos p == Defender) (M.elems $ pls m)
+      pls = if homekickoff m then homeplayers else awayplayers
   in playerid $ head (forws ++ mids ++ defs)
 
 kickoffAssister :: MatchState -> PlayerID
 kickoffAssister m =
-  let forws = filter (\p -> plpos p == Attacker) (M.elems $ homeplayers m)
-      mids = filter (\p -> plpos p == Midfielder) (M.elems $ homeplayers m)
-      defs = filter (\p -> plpos p == Defender) (M.elems $ homeplayers m)
+  let forws = filter (\p -> plpos p == Attacker) (M.elems $ pls m)
+      mids = filter (\p -> plpos p == Midfielder) (M.elems $ pls m)
+      defs = filter (\p -> plpos p == Defender) (M.elems $ pls m)
+      pls = if homekickoff m then homeplayers else awayplayers
   in playerid $ head $ tail (forws ++ mids ++ defs)
 
 

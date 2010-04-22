@@ -70,6 +70,8 @@ data MatchState = MatchState {
   , paused         :: Bool
   , kickpower      :: Int
   , frametime      :: Float
+  , homekickoff    :: Bool
+  , homeattacksup  :: Bool
   }
 $(deriveMods ''MatchState)
 

@@ -64,7 +64,7 @@ initMatchState :: DisplayList
 initMatchState plist psize cpos pltexs (ht, ho) (at, ao) c f1 f2 = 
   MatchState plist [] psize cpos (Team hps hf 0 (Swos.teamname ht) ho) (Team aps af 0 (Swos.teamname at) ao) c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
-             [] Nothing f1 f2 (mkStdGen 21) (False, 0) False 0 0.020
+             [] Nothing f1 f2 (mkStdGen 21) (False, 0) False 0 0.020 False False
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps
@@ -157,8 +157,8 @@ writeText w h f str (x, y) = do
 playerOnHisSide :: MatchState -> Player -> Bool
 playerOnHisSide m p =
   let (_, y) = absToRel m (plposition p)
-      home   = playerHome p
-  in if home then y <= 0.5 else y >= 0.5
+      lower  = playerHome p == homeattacksup m
+  in if lower then y <= 0.5 else y >= 0.5
 
 updateBallPlay :: Match ()
 updateBallPlay = do
@@ -189,10 +189,16 @@ updateBallPlay = do
         if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 -- goal
           then do
             let restartpos = (px / 2, py / 2)
-            sModAwaygoals succ
+            if homeattacksup s
+              then do
+                sModAwaygoals succ
+                sModHomekickoff $ const True
+              else do
+                sModHomegoals succ
+                sModHomekickoff $ const False
             sModBallplay $ const BeforeKickoff
           else
-            if not (homeRestarts s) -- corner kick
+            if homeattacksup s == not (homeRestarts s) -- corner kick
               then do
                 let restartpos =
                       if bx < px / 2
@@ -205,14 +211,20 @@ updateBallPlay = do
                         then (px / 2 - 9.15, 5.5)
                         else (px / 2 + 9.15, 5.5)
                 sModBallplay $ const $ OutOfPlayWaiting 1000 (GoalKick restartpos)
-      when (by > py) $ do  -- corner kick of goal kick on lower half
+      when (by > py) $ do  -- corner kick of goal kick on upper half
         if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 -- goal
           then do
             let restartpos = (px / 2, py / 2)
-            sModHomegoals succ
+            if homeattacksup s
+              then do
+                sModHomegoals succ
+                sModHomekickoff $ const False
+              else do
+                sModAwaygoals succ
+                sModHomekickoff $ const True
             sModBallplay $ const BeforeKickoff
           else
-            if not (homeRestarts s) -- goal kick
+            if homeattacksup s == not (homeRestarts s) -- goal kick
               then do
                 let restartpos =
                       if bx < px / 2

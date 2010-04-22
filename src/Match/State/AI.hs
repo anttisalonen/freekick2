@@ -74,7 +74,7 @@ flipCompare a b
 
 passValue :: MatchState -> Player -> Player -> (Float, Player)
 passValue m passer receiver =
-  let sval  = shootPositionValue m (playerHome receiver) (plposition receiver)
+  let sval  = shootPositionValue m (homeattacksup m == playerHome receiver) (plposition receiver)
       dist = dist2 (plposition passer) (plposition receiver)
   in (sval + ratePassDist dist, receiver)
 
@@ -85,8 +85,8 @@ ratePassDist d | d < 20    = 0.5 * (10 * d - 100)
 
 -- range: 0 .. 100
 shootPositionValue :: MatchState -> Bool -> FRange -> Float
-shootPositionValue _ home pos =
-  max 0 (100 - (dist2 pos (oppositeGoalAbs' pos home)))
+shootPositionValue _ attup pos =
+  max 0 (100 - (dist2 pos (oppositeGoalAbs' pos attup)))
 
 beforeKickoffAI :: MatchState -> [PlAction]
 beforeKickoffAI m = 
@@ -169,7 +169,7 @@ shootScore m pl =
    where 
      vecttogoal = oppositeGoalAbs m pl `diff2` plposition pl
      scorepts =
-       2 * shootPositionValue m (playerHome pl) (plposition pl)
+       2 * shootPositionValue m (homeattacksup m == playerHome pl) (plposition pl)
      kickpwr =
        to3D (vecttogoal `mul2` 5) 8
 

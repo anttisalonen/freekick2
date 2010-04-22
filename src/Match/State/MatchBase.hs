@@ -152,18 +152,18 @@ allPlayers m = M.elems (homeplayers m) ++ (M.elems (awayplayers m))
 
 ownGoalAbs :: MatchState -> Player -> FRange
 ownGoalAbs m pl =
-  oppositeGoalAbs' (pitchsize m) (not $ playerHome pl)
+  oppositeGoalAbs' (pitchsize m) (not $ playerHome pl == homeattacksup m)
 
 ownGoalAbs' :: FRange -> Bool -> FRange
 ownGoalAbs' ps home = oppositeGoalAbs' ps (not home)
 
 oppositeGoalAbs :: MatchState -> Player -> FRange
 oppositeGoalAbs m pl =
-  oppositeGoalAbs' (pitchsize m) (playerHome pl)
+  oppositeGoalAbs' (pitchsize m) (playerHome pl == homeattacksup m)
 
 oppositeGoalAbs' :: FRange -> Bool -> FRange
-oppositeGoalAbs' ps home =
-  if home
+oppositeGoalAbs' ps attackup =
+  if attackup
     then relToAbs' ps (0.5, 1.0)
     else relToAbs' ps (0.5, 0.0)
 
@@ -174,7 +174,7 @@ aiControlled s n =
     Just p  -> n /= p
 
 homeRestarts :: MatchState -> Bool
-homeRestarts m = not $ fromMaybe True (liftM snd $ lasttouch m)
+homeRestarts m = homeattacksup m /= (not $ fromMaybe True (liftM snd $ lasttouch m))
 
 pausedBallplay :: MatchState -> Bool
 pausedBallplay m = pausedBallplay' (ballplay m)
