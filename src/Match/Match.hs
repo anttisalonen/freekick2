@@ -64,7 +64,7 @@ initMatchState :: DisplayList
 initMatchState plist psize cpos pltexs (ht, ho) (at, ao) c f1 f2 = 
   MatchState plist [] psize cpos (Team hps hf 0 (Swos.teamname ht) ho) (Team aps af 0 (Swos.teamname at) ao) c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
-             [] Nothing f1 f2 (mkStdGen 21) (False, 0) False 0 0.020 False False
+             [] Nothing f1 f2 (mkStdGen 21) (False, 0) False 0 0.020 False True
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps
@@ -248,12 +248,13 @@ updateBallPlay = do
           sModBall $ modBallvelocity $ const nullFVector3
           sModBallplay $ const $ OutOfPlay (timer - frameTime) restart
         else sModBallplay $ const $ RestartPlay restart
-    RestartPlay restart -> do
+    RestartPlay _ -> do
       when ((to2D $ ballposition (ball s)) `inside2s` ((0, 0), (pitchsize s))) $
         sModBallplay $ const InPlay
       -- in case the ball is kicked further away from pitch
       when (not $ (to2D $ ballposition (ball s)) `inside2s` ((-10, -10), (pitchsize s) `mul2` 1.1)) $
-        sModBallplay $ const $ OutOfPlayWaiting 1000 restart 
+        sModBallplay $ const InPlay
+    Finished -> return ()
 
 handleMatchEvent :: MatchEvent -> Match ()
 handleMatchEvent BallKicked = do
@@ -295,7 +296,21 @@ updateTimers = do
   s <- State.get
   let dt = frametime s
   sModAllPlayers (modKicktimer (\t -> max 0 (t - floor (dt * 1000))))
-  when (inPlay (ballplay s)) $ sModMatchtime $ modSnd $ (+ (dt * 30))
+  when (inPlay (ballplay s)) $ do
+    sModMatchtime $ modSnd $ (+ (dt * 30))
+    case fst (matchtime s) of
+      False -> do
+        when (snd (matchtime s) > 45 * 60) $ do
+          sModMatchtime $ const (True, 45 * 60)
+          sModBallplay $ const BeforeKickoff
+          sModHomeattacksup $ not
+          sModHomekickoff $ const True
+      True  -> do
+        when (snd (matchtime s) > 90 * 60) $ do
+          sModBallplay $ const Finished
+          let (px, py) = pitchsize s
+          sModBall $ modBallposition $ const $ to3D (px / 2, py / 2) 0
+          sModBall $ modBallvelocity $ const nullFVector3
 
 controllable :: BallPlay -> Bool
 controllable InPlay                     = True
