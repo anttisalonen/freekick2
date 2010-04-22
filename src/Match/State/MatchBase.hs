@@ -14,9 +14,9 @@ import Match.Player
 
 import Match.State.MatchState
 
-plspeed :: Float -> Player -> Float
-plspeed dt p = 20 * plsp * dt
-  where plsp = 0.7 + 0.3 * shootingskill (plskills p)
+plspeed :: Float -> Float -> Float -> Player -> Float
+plspeed sc smin dt p = sc * plsp * dt
+  where plsp = smin + (1 - smin) * shootingskill (plskills p)
 
 goUp :: Float -> FRange -> FRange
 goUp n (x, y) = (x, y + n)
@@ -24,27 +24,21 @@ goUp n (x, y) = (x, y + n)
 goRight :: Float -> FRange -> FRange
 goRight n (x, y) = (x + n, y)
 
-kickDistance :: Float
-kickDistance = 1.2
-
-dribbleDistance :: Float
-dribbleDistance = 0.8
-
 inKickDistance :: MatchState -> Player -> Bool
 inKickDistance m p = 
   let (bx, by, bz) = ballposition (ball m)
       pp = plposition p
-  in if bz > 0.8
+  in if bz > maxkickheight (params m)
        then False
-       else dist2 (bx, by) pp < kickDistance
+       else dist2 (bx, by) pp < kickdistance (params m)
 
 inDribbleDistance :: MatchState -> Player -> Bool
 inDribbleDistance m p = 
   let (bx, by, bz) = ballposition (ball m)
       pp = plposition p
-  in if bz > 0.5
+  in if bz > maxdribbleheight (params m)
        then False
-       else dist2 (bx, by) pp < dribbleDistance
+       else dist2 (bx, by) pp < dribbledistance (params m)
 
 nearestToBall :: MatchState -> Player
 nearestToBall m =
@@ -198,5 +192,5 @@ canDribble m pl =
   inPlay (ballplay m) &&
   inDribbleDistance m pl && 
   kicktimer pl <= 0 && 
-  len3 (ballvelocity (ball m)) < 50
+  len3 (ballvelocity (ball m)) < (maxballdspeed (params m))
 

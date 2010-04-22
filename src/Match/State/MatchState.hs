@@ -52,6 +52,62 @@ data Team = Team {
 }
 $(deriveMods ''Team)
 
+data MatchParams = MatchParams {
+    matchtimedelta     :: Float -- time increase in seconds/frame
+  , kickofftimer       :: Int -- time to spend in WaitForKickoff (ms)
+  , kickoffballtimer   :: Int -- time after ball is centered in WaitForKickoff (ms)
+  , oopthrowintimer    :: Int -- time to spend in OutOfPlayWaiting (throwin) (ms)
+  , oopgoalkicktimer   :: Int -- time to spend in OutOfPlayWaiting (goal kick) (ms)
+  , oopcornerkicktimer :: Int -- time to spend in OutOfPlayWaiting (corner kick) (ms)
+  , ooptimer           :: Int -- time to spend in OutOfPlay (ms)
+  , oopmoveballtimer   :: Int -- time after ball in moved in OutOfPlay (ms)
+  , ballbounciness     :: Float -- 1: no bounce; 2: 100% elastic bounce
+  , ballgravitypull    :: Float -- m/s^2 (approximate)
+  , ballairviscosity   :: Float -- 0: none; 1/frametime(=50): complete
+  , ballrollfriction   :: Float -- as in air viscosity
+  , plcontrolmin       :: Float -- control coeff with control skill = 0
+  , maxkickveclen      :: Float -- maximum length of kick vector
+  , stillpassveclen    :: Float -- max. length of kick vector to still count as pass
+  , stillpassvecheight :: Float -- max. height of kick vector to still count as pass
+  , maxkickvar         :: Float -- percentage [0..1] of kick target variation in x, y
+  , maxkickvarz        :: Float -- percentage [0..1] of kick target variation in z
+  , setkicktimer       :: Int   -- kick timer in ms (max. time between kicks by a player)
+  , aimaxlowpasslen    :: Float -- max. distance where to pass low
+  , ailowpasspower     :: Float -- pass power coeff
+  , aihighpasspower    :: Float -- pass power coeff
+  , aihighpasszpower   :: Float -- pass power coeff (z)
+  , plspeedcoeff       :: Float -- player speed coeff
+  , plspeedmin         :: Float -- speed coeff with speed skill = 0
+  , kickdistance       :: Float -- max kick distance
+  , dribbledistance    :: Float -- max dribble distance
+  , maxkickheight      :: Float -- max ball height for kick
+  , maxdribbleheight   :: Float -- max ball height for dribble
+  , maxballdspeed      :: Float -- max ball speed for dribbling
+  , ctrlquitkey        :: SDLKey -- key to quit
+  , ctrlshootkey       :: SDLKey -- key to shoot
+  , ctrlleftkey        :: SDLKey
+  , ctrlrightkey       :: SDLKey
+  , ctrlupkey          :: SDLKey
+  , ctrldownkey        :: SDLKey
+  , ctrlpausekey       :: SDLKey
+  }
+
+defaultParams = MatchParams
+  30 2000 1000 -- general
+  1000 1000 1000 1000 1000  -- oop
+  1.5 (-10) 0.5 1.2 -- ball
+  0.6 -- control
+  50 -- kick
+  20 2 -- pass
+  0.5 0.5 -- kick variation
+  1000 -- kick timer
+  20 4 1.5 0.25 -- ai pass
+  20 0.7 -- speed
+  1.2 0.8 -- max distances
+  0.8 0.5 -- max heights
+  50 -- max ball dribble speed
+  SDLK_ESCAPE SDLK_RCTRL SDLK_LEFT SDLK_RIGHT SDLK_UP SDLK_DOWN SDLK_p
+
 data MatchState = MatchState {
     pitchlist      :: DisplayList
   , currkeys       :: [SDLKey]
@@ -73,6 +129,7 @@ data MatchState = MatchState {
   , frametime      :: Float
   , homekickoff    :: Bool
   , homeattacksup  :: Bool
+  , params         :: MatchParams
   }
 $(deriveMods ''MatchState)
 

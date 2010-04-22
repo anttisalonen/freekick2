@@ -65,10 +65,12 @@ initMatchState plist psize cpos pltexs (ht, ho) (at, ao) c f1 f2 =
   MatchState plist [] psize cpos (Team hps hf 0 (Swos.teamname ht) ho) (Team aps af 0 (Swos.teamname at) ao) c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
              [] Nothing f1 f2 (mkStdGen 21) (False, 0) False 0 0.020 False True
+             defaultParams
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
         hf  = createFormation True hps
         af  = createFormation False aps
+     
 
 onPitchZ :: Float
 onPitchZ = 1
@@ -168,9 +170,9 @@ updateBallPlay = do
   case ballplay s of
     BeforeKickoff -> do
       when (all (playerOnHisSide s) (allPlayers s)) $
-        sModBallplay (const $ WaitForKickoff 2000)
+        sModBallplay (const $ WaitForKickoff (kickofftimer (params s)))
     WaitForKickoff timer -> do
-      when (timer < 1000) $ sModBall $ modBallposition $ const $ to3D (px / 2, py / 2) 0
+      when (timer < (kickoffballtimer (params s))) $ sModBall $ modBallposition $ const $ to3D (px / 2, py / 2) 0
       sModBall $ modBallvelocity $ const nullFVector3
       if timer < 0
         then sModBallplay (const DoKickoff)
@@ -181,10 +183,10 @@ updateBallPlay = do
       let (bx, by) = to2D $ ballposition $ ball s
       when (bx < 0) $ do -- throwin from the left
         let restartpos = (0, by)
-        sModBallplay $ const $ OutOfPlayWaiting 1000 (ThrowIn restartpos)
+        sModBallplay $ const $ OutOfPlayWaiting (oopthrowintimer (params s)) (ThrowIn restartpos)
       when (bx > px) $ do -- throwin from the right
         let restartpos = (px, by)
-        sModBallplay $ const $ OutOfPlayWaiting 1000 (ThrowIn restartpos)
+        sModBallplay $ const $ OutOfPlayWaiting (oopthrowintimer (params s)) (ThrowIn restartpos)
       when (by < 0) $ do  -- corner kick or goal kick on bottom half
         if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 -- goal
           then do
@@ -204,13 +206,13 @@ updateBallPlay = do
                       if bx < px / 2
                         then (0, 0)
                         else (px, 0)
-                sModBallplay $ const $ OutOfPlayWaiting 1000 (CornerKick restartpos)
+                sModBallplay $ const $ OutOfPlayWaiting (oopcornerkicktimer (params s)) (CornerKick restartpos)
               else do -- goal kick
                 let restartpos =
                       if bx < px / 2
-                        then (px / 2 - 9.15, 5.5)
+                        then (px / 2 - 9.15, 5.5) -- TODO: clean up pitch constants
                         else (px / 2 + 9.15, 5.5)
-                sModBallplay $ const $ OutOfPlayWaiting 1000 (GoalKick restartpos)
+                sModBallplay $ const $ OutOfPlayWaiting (oopgoalkicktimer (params s)) (GoalKick restartpos)
       when (by > py) $ do  -- corner kick of goal kick on upper half
         if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 -- goal
           then do
@@ -230,21 +232,21 @@ updateBallPlay = do
                       if bx < px / 2
                         then (px / 2 - 9.15, py - 5.5)
                         else (px / 2 + 9.15, py - 5.5)
-                sModBallplay $ const $ OutOfPlayWaiting 1000 (GoalKick restartpos)
+                sModBallplay $ const $ OutOfPlayWaiting (oopgoalkicktimer (params s)) (GoalKick restartpos)
               else do -- corner kick
                 let restartpos =
                       if bx < px / 2
                         then (0, py)
                         else (px, py)
-                sModBallplay $ const $ OutOfPlayWaiting 1000 (CornerKick restartpos)
+                sModBallplay $ const $ OutOfPlayWaiting (oopcornerkicktimer (params s)) (CornerKick restartpos)
     OutOfPlayWaiting timer restart -> 
       if timer > 0
         then sModBallplay $ const $ OutOfPlayWaiting (timer - frameTime) restart
-        else sModBallplay $ const $ OutOfPlay 1000 restart
+        else sModBallplay $ const $ OutOfPlay (ooptimer (params s)) restart
     OutOfPlay timer restart ->
       if timer > 0
         then do
-          when (timer < 1000) $ sModBall $ modBallposition $ const $ to3D (getRestartPoint restart) 0
+          when (timer < (oopmoveballtimer (params s))) $ sModBall $ modBallposition $ const $ to3D (getRestartPoint restart) 0
           sModBall $ modBallvelocity $ const nullFVector3
           sModBallplay $ const $ OutOfPlay (timer - frameTime) restart
         else sModBallplay $ const $ RestartPlay restart
@@ -276,9 +278,9 @@ updateBallPosition = do
   s <- State.get
   let dt = frametime s
   sModBall $ modBallposition (*+* ((ballvelocity (ball s)) *** dt))
-  sModBall $ collCheckBall
-  sModBall $ gravitateBall dt
-  sModBall $ slowDownBall dt
+  sModBall $ collCheckBall (ballbounciness (params s))
+  sModBall $ gravitateBall (ballgravitypull (params s)) dt
+  sModBall $ slowDownBall (ballairviscosity (params s)) (ballrollfriction (params s)) dt
 
 execAI :: Match ()
 execAI = do
@@ -298,7 +300,7 @@ updateTimers = do
   let dt = frametime s
   sModAllPlayers (modKicktimer (\t -> max 0 (t - floor (dt * 1000))))
   when (inPlay (ballplay s)) $ do
-    sModMatchtime $ modSnd $ (+ (dt * 30))
+    sModMatchtime $ modSnd $ (+ (dt * matchtimedelta (params s)))
     case fst (matchtime s) of
       False -> do
         when (snd (matchtime s) > 45 * 60) $ do

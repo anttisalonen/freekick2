@@ -48,20 +48,20 @@ onLine n v1 v2 =
   let dv = v1 `diff2` v2
   in v1 `diff2` ((normalize2 (neg2 dv)) `mul2` n)
 
-getPassPower :: FRange -> Player -> FVector3
-getPassPower recv pl = 
+getPassPower :: Float -> Float -> Float -> Float -> FRange -> Player -> FVector3
+getPassPower plen lpp hpp hpzp recv pl = 
   let dv = recv `diff2` (plposition pl)
-  in if len2 dv < 20
-       then to3D ((recv `diff2` (plposition pl)) `mul2` 4) 0
-       else to3D ((recv `diff2` (plposition pl)) `mul2` 1.5) (len2 dv / 4)
+  in if len2 dv < plen
+       then to3D ((recv `diff2` (plposition pl)) `mul2` lpp) 0
+       else to3D ((recv `diff2` (plposition pl)) `mul2` hpp) (len2 dv * hpzp)
 
-pass :: Player -> Player -> PlAction
-pass receiver passer = 
-  let passpwr = getPassPower (plposition receiver) passer
+pass :: Float -> Float -> Float -> Float -> Player -> Player -> PlAction
+pass plen lpp hpp hpzp receiver passer = 
+  let passpwr = getPassPower plen lpp hpp hpzp (plposition receiver) passer
   in (passer, Kick passpwr)
 
 bestPassTarget :: MatchState -> Player -> (Float, PlAction)
-bestPassTarget m pl = (passpts, pass passtarget pl)
+bestPassTarget m pl = (passpts, pass (aimaxlowpasslen (params m)) (ailowpasspower (params m)) (aihighpasspower (params m)) (aihighpasszpower (params m)) passtarget pl)
   where 
     (passpts, passtarget) = 
       head $ sortBy (flipCompare `on` fst) $ map (passValue m pl) (filter (/= pl) $ ownPlayers m pl)
