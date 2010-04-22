@@ -124,10 +124,12 @@ doAI m =
         if shouldRestart m r pl
           then restart m r pl
           else restartLookout m r pl
-    Finished ->
+    Finished timer ->
       let (px, py) = pitchsize m
       in forAIPlayers m $ \pl ->
-           (pl, Goto (px - 10, py / 2))
+           if timer < 1000
+             then (pl, Idle)
+             else (pl, Goto (px - 10, py / 2))
 
 shouldRestart :: MatchState -> Restart -> Player -> Bool
 shouldRestart m (ThrowIn p) pl =

@@ -254,7 +254,8 @@ updateBallPlay = do
       -- in case the ball is kicked further away from pitch
       when (not $ (to2D $ ballposition (ball s)) `inside2s` ((-10, -10), (pitchsize s) `mul2` 1.1)) $
         sModBallplay $ const InPlay
-    Finished -> return ()
+    Finished t ->
+      sModBallplay $ const $ Finished $ (t + frameTime)
 
 handleMatchEvent :: MatchEvent -> Match ()
 handleMatchEvent BallKicked = do
@@ -307,7 +308,7 @@ updateTimers = do
           sModHomekickoff $ const True
       True  -> do
         when (snd (matchtime s) > 90 * 60) $ do
-          sModBallplay $ const Finished
+          sModBallplay $ const $ Finished 0
           let (px, py) = pitchsize s
           sModBall $ modBallposition $ const $ to3D (px / 2, py / 2) 0
           sModBall $ modBallvelocity $ const nullFVector3

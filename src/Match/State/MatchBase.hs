@@ -182,12 +182,16 @@ pausedBallplay m = pausedBallplay' (ballplay m)
 pausedBallplay' :: BallPlay -> Bool
 pausedBallplay' (WaitForKickoff _) = True
 pausedBallplay' (OutOfPlay _ _)    = True
-pausedBallplay' Finished           = True
+pausedBallplay' (Finished _)       = True
 pausedBallplay' _                  = False
 
 inPlay :: BallPlay -> Bool
 inPlay InPlay = True
 inPlay _      = False
+
+finishedSince :: BallPlay -> Maybe Int
+finishedSince (Finished t) = Just t
+finishedSince _            = Nothing
 
 canDribble :: MatchState -> Player -> Bool
 canDribble m pl =

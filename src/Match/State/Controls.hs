@@ -12,6 +12,7 @@ import SDLUtils
 
 import Match.Player
 
+import Match.State.MatchBase
 import Match.State.MatchState
 import Match.State.Actions
 
@@ -32,10 +33,10 @@ handleInput dt = do
   sModCurrkeys $ updateKeyMap (keyChanges evts)
   s <- State.get
   let ks = currkeys s
-  handleControls dt evts
-  return (SDLK_ESCAPE `elem` ks)
+  mquits <- handleControls dt evts
+  return (mquits || (SDLK_ESCAPE `elem` ks))
 
-handleControls :: (Integral a) => a -> [SDL.Event] -> Match ()
+handleControls :: (Integral a) => a -> [SDL.Event] -> Match Bool
 handleControls dt evts = do
   s <- State.get
   let ks = currkeys s
@@ -72,4 +73,5 @@ handleControls dt evts = do
                                     yd * (200 + fromIntegral (kickpower s)) / 100, 
                                    (200 + fromIntegral (kickpower s)) / 1000 * 30))
                 sModKickpower $ const 0
+  return (fromMaybe False (liftM (>2000) (finishedSince (ballplay s))) && SDLK_RCTRL `elem` ks)
 

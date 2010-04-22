@@ -32,7 +32,7 @@ data BallPlay = BeforeKickoff
               | OutOfPlayWaiting Int Restart -- ai does nothing
               | OutOfPlay Int Restart        -- ai moves to positions
               | RestartPlay Restart          -- ai restarts play
-              | Finished
+              | Finished Int
 
 data MatchEvent = BallKicked
 
