@@ -120,6 +120,9 @@ absToRel m (x, y) =
   let (px, py) = pitchsize m
   in (x / px, y / py)
 
+absToRel' :: FRange -> FRange -> FRange
+absToRel' (px, py) (x, y) = (x / px, y / py)
+
 relToAbs' :: FRange -> FRange -> FRange
 relToAbs' (px, py) (x, y) =
   (px * x, py * y)
