@@ -16,7 +16,7 @@ import Match.Player
 import Match.State.MatchState
 import Match.State.MatchBase
 
-data Action = Goto FRange | Kick FVector3 | Idle
+data Action = Goto FRange | Kick FVector3 | HoldBall | Idle
 
 type PlAction = (Player, Action)
 
@@ -24,9 +24,10 @@ plact :: PlAction -> Match ()
 plact = uncurry act
 
 act :: Player -> Action -> Match ()
-act p (Goto t) = goto t p
-act p (Kick t) = kick t p
-act _ Idle     = return ()
+act p (Goto t)    = goto t p
+act p (Kick t)    = kick t p
+act p (HoldBall)  = hold p
+act _ Idle        = return ()
 
 actP :: PlayerID -> Action -> Match ()
 actP p a = do
@@ -98,4 +99,12 @@ kick vec p = do
       sModPendingevents $ (BallKicked:)
       sModLasttouch $ const $ Just $ playerid p
       sModPlayer (playerid p) $ modKicktimer $ const (setkicktimer (params s))
+
+hold :: Player -> Match ()
+hold pl = do
+  s <- State.get
+  when (inCatchDistance s pl) $ do
+    sModBall $ modBallvelocity $ const $ nullFVector3
+    sModBall $ modBallposition $ const $ to3D (plposition pl) 0
+    sModLasttouch $ const $ Just $ playerid pl
 
