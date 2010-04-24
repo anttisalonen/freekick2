@@ -254,7 +254,7 @@ updateBallPlay = do
       when ((to2D $ ballposition (ball s)) `inside2s` ((0, 0), (pitchsize s))) $
         sModBallplay $ const InPlay
       -- in case the ball is kicked further away from pitch
-      when (not $ (to2D $ ballposition (ball s)) `inside2s` ((-10, -10), (pitchsize s) `mul2` 1.1)) $
+      when (not $ (to2D $ ballposition (ball s)) `inside2s` ((-0.2, -0.2), (px + 0.2, py + 0.2))) $
         sModBallplay $ const InPlay
     Finished t ->
       sModBallplay $ const $ Finished $ (t + frameTime)
