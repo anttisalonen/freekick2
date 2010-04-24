@@ -40,6 +40,17 @@ inDribbleDistance m p =
        then False
        else dist2 (bx, by) pp < dribbledistance (params m)
 
+inCatchDistance :: MatchState -> Player -> Bool
+inCatchDistance m p = 
+  let (bx, by, bz) = ballposition (ball m)
+      pp = plposition p
+      ppos = plpos p
+  in if ppos /= Goalkeeper
+       then False
+       else if bz > maxcatchheight (params m)
+              then False
+              else dist2 (bx, by) pp < catchdistance (params m)
+
 nearestToBall :: MatchState -> Player
 nearestToBall m =
   let hp = nearestHPToBall m
@@ -196,4 +207,10 @@ canDribble m pl =
   inDribbleDistance m pl && 
   kicktimer pl <= 0 && 
   len3 (ballvelocity (ball m)) < (maxballdspeed (params m))
+
+opponentLastTouched :: MatchState -> Player -> Bool
+opponentLastTouched m pl =
+  case lasttouch m of
+    Nothing     -> False
+    Just (_, h) -> playerHome pl /= h
 
