@@ -15,6 +15,13 @@ import Match.State.Actions
 import Match.State.Formation
 
 offBallAI :: MatchState -> Player -> PlAction
+offBallAI m pl | plpos pl == Goalkeeper =
+    if nearestOwnToBall m pl == pl && 
+       inCatchDistance m pl && 
+       not (inDribbleDistance m pl) &&
+       opponentLastTouched m pl
+      then (pl, HoldBall)
+      else (pl, Goto (formationPositionAbs m pl))
 offBallAI m pl | plpos (nearestOppToBall m pl) == Goalkeeper =
     (pl, Goto (formationPositionAbs m pl))
 offBallAI m pl | nearestOwnToBall m pl == pl && kicktimer pl <= 0 = 
