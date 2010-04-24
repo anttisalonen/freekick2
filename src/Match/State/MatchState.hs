@@ -60,7 +60,7 @@ data MatchParams = MatchParams {
   , oopgoalkicktimer   :: Int -- time to spend in OutOfPlayWaiting (goal kick) (ms)
   , oopcornerkicktimer :: Int -- time to spend in OutOfPlayWaiting (corner kick) (ms)
   , ooptimer           :: Int -- time to spend in OutOfPlay (ms)
-  , oopmoveballtimer   :: Int -- time after ball in moved in OutOfPlay (ms)
+  , oopmoveballtimer   :: Int -- time after ball is moved in OutOfPlay (ms)
   , ballbounciness     :: Float -- 1: no bounce; 2: 100% elastic bounce
   , ballgravitypull    :: Float -- m/s^2 (approximate)
   , ballairviscosity   :: Float -- 0: none; 1/frametime(=50): complete
