@@ -24,7 +24,6 @@ import Data.Binary.Put
 import qualified Data.ByteString.Char8 as C
 import Control.Monad
 import Control.Applicative
-import Data.Char
 import System.Directory
 import System.FilePath
 
