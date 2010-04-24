@@ -34,3 +34,4 @@ swosPlayerToPlayer inz home htex atex plshimg hsize (px, py) p =
                 | otherwise                              = swosSkillToSkill $ Swos.skpassing $ Swos.plskills p
           speeds = swosSkillToSkill $ Swos.skspeed $ Swos.plskills p
           controls = swosSkillToSkill $ Swos.skcontrol $ Swos.plskills p
+

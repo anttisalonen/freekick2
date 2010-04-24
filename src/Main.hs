@@ -20,6 +20,7 @@ import Graphics.Rendering.FTGL as FTGL
 
 import SDLUtils
 import Swos
+import SwosTactics
 import Tree
 import Match.Match
 import Drawing
@@ -37,6 +38,7 @@ data WorldContext = WorldContext {
   , worldteams    :: TeamStructure
   , hometeam      :: Maybe (SWOSTeam, TeamOwner)
   , awayteam      :: Maybe (SWOSTeam, TeamOwner)
+  , tactics       :: [((Int, Int, Int), SWOSTactics)]
   }
 
 type TeamStructure = Tree String (String, [SWOSTeam])
@@ -320,10 +322,21 @@ startMatch f1 f2 ht ho at ao _ = do
   balltex <- liftIO $ loadDataTexture Nothing "share/ball1.png" (Just 0) (Just 8)
   playershadowtex <- liftIO $ loadDataTexture Nothing "share/player1shadow.png" (Just 0) (Just 32)
   ballshadowtex <- liftIO $ loadDataTexture Nothing "share/ball1shadow.png" (Just 0) (Just 8)
+  allTactics <- tactics <$> State.get
   let ballimg = ImageInfo balltex (0.4, 0.4)
   let playershadowimg = ImageInfo playershadowtex (2, 2)
   let ballshadowimg = ImageInfo ballshadowtex (0.4, 0.4)
-  liftIO $ playMatch (MatchTextureSet ptex pltex1 pltex2 playershadowimg ballimg ballshadowimg (2, 2)) f1 f2 (ht, ho) (at, ao)
+      htac = fromMaybe (snd $ head allTactics) $ lookup (numPositions (teamtactics ht)) allTactics
+      atac = fromMaybe (snd $ head allTactics) $ lookup (numPositions (teamtactics at)) allTactics
+  liftIO $ playMatch 
+              (MatchTextureSet ptex 
+                               pltex1 
+                               pltex2 
+                               playershadowimg 
+                               ballimg 
+                               ballshadowimg 
+                               (2, 2)) 
+              f1 f2 (ht, htac, ho) (at, atac, ao)
   return False
 
 continueToMatch :: MenuBlock ()
@@ -468,11 +481,12 @@ run = do
   f <- loadDataFont 24 48 "share/DejaVuSans.ttf"
   f2 <- loadDataFont 16 48 "share/DejaVuSans.ttf"
   allteams <- structureTeams `fmap` loadTeamsFromDirectory "teams"
+  ts <- (fmap . fmap) organizeTacticsByName $ loadTacticsFromDirectory "tactics"
   let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel f (\_ -> return True)
       button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel f (browseTeams allteams)
       browseLabel = "Browse"
       quitLabel = "Quit"
       buttons = [button1, button2]
       rc = RenderContext f f2 tex
-  evalStateT (genLoop buttons) (WorldContext rc allteams Nothing Nothing)
+  evalStateT (genLoop buttons) (WorldContext rc allteams Nothing Nothing ts)
 

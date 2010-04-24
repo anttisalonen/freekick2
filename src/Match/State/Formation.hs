@@ -3,85 +3,75 @@ where
 
 import qualified Data.IntMap as M
 
+import Utils
 import FVector
+import qualified SwosTactics
 
 import Match.Player
+import Match.Ball
 
 import Match.State.MatchState
 import Match.State.MatchBase
 
-mkGoalkeeperFormation :: Bool -> [Player] -> Formation
-mkGoalkeeperFormation True  pls = M.fromList (zip (map playerNumber pls) (repeat (0.5, 0.02)))
-mkGoalkeeperFormation False pls = M.fromList (zip (map playerNumber pls) (repeat (0.5, 0.98)))
+mkGoalkeeperFormation :: Bool -> [Int] -> Formation
+mkGoalkeeperFormation True  pls = M.fromList (zip pls (repeat (\_ -> (0.5, 0.02))))
+mkGoalkeeperFormation False pls = M.fromList (zip pls (repeat (\_ -> (0.5, 0.98))))
 
-kickoffPositions :: FRange -> (Int -> [FRange]) -> Bool -> [Player] -> Formation
-kickoffPositions cnt others home pls =
-  let numpls = length pls
-      hasscentre = numpls `mod` 2 == 1
-      pairpls = if hasscentre then drop 1 pls else pls
-      cplrpos = cnt
-      pairposs = others numpls
-      plrposs = if hasscentre
-                  then cplrpos : take (numpls - 1) pairposs
-                  else take numpls pairposs
-      plrposs' = if home then plrposs else map flipSide plrposs
-  in M.fromList (zip (map playerNumber pls) (plrposs'))
+ballrectangle :: (Float, Float) -> Int
+ballrectangle (bx, by) = v
+  where v = y * 5 + x
+        x = clamp 0 4 $ floor $ (1 - bx) * 5
+        y = clamp 0 6 $ floor $ by * 7
 
-mkDefenderFormation :: Bool -> [Player] -> Formation
-mkDefenderFormation = kickoffPositions (0.5, 0.2) defs
-  where defs 1 = []
-        defs 2 = [(0.33, 0.24), (0.76, 0.21)]
-        defs 3 = [(0.258, 0.252), (0.753, 0.257)]
-        defs 4 = [(0.22, 0.250), (0.83, 0.250), (0.48, 0.25), (0.60, 0.27)]
-        defs 5 = [(0.23, 0.258), (0.88, 0.257), (0.41, 0.29), (0.62, 0.26)]
-        defs _ = repeat (0.5, 0.2)
+plpoint :: Int -> [Int] -> FRange
+plpoint br ts = 
+  let pn = ts !! (min 34 br)
+      xp = pn `mod` 15
+      yp = pn `div` 16
+      x = 1 - fromIntegral xp * (1/15)
+      y = fromIntegral yp * (1/16)
+  in (x, y)
 
-mkMidfielderFormation :: Bool -> [Player] -> Formation
-mkMidfielderFormation = kickoffPositions (0.5, 0.3) mids
-  where mids 1 = []
-        mids 2 = [(0.32, 0.34), (0.76, 0.37)]
-        mids 3 = [(0.25, 0.41), (0.751, 0.46)]
-        mids 4 = [(0.13, 0.452), (0.92, 0.453), (0.41, 0.30), (0.63, 0.38)]
-        mids 5 = [(0.12, 0.450), (0.95, 0.451), (0.46, 0.38), (0.67, 0.39)]
-        mids _ = repeat (0.5, 0.3)
+plPosToTactic :: [Int] -> Tactic
+plPosToTactic ps = \b -> plpoint (ballrectangle b) ps
 
-mkAttackerFormation :: Bool -> [Player] -> Formation
-mkAttackerFormation = kickoffPositions (0.5, 0.4) poss
-  where poss 1 = []
-        poss 2 = [(0.31, 0.42), (0.64, 0.44)]
-        poss 3 = [(0.256, 0.452), (0.754, 0.458)]
-        poss 4 = [(0.21, 0.455), (0.82, 0.453), (0.41, 0.42), (0.62, 0.46)]
-        poss _ = repeat (0.5, 0.4)
-
-createFormation :: Bool -> PlayerMap -> Formation
-createFormation home pls' =
+createFormation :: Bool -> PlayerMap -> SwosTactics.SWOSTactics -> Formation
+createFormation home pls' stac =
   let pls = M.elems pls'
-      gs = filter (\p -> plpos p == Goalkeeper) pls
-      ds = filter (\p -> plpos p == Defender) pls
-      ms = filter (\p -> plpos p == Midfielder) pls
-      fs = filter (\p -> plpos p == Attacker) pls
+      gs = take 1 $ map playerNumber $ filter (\p -> plpos p == Goalkeeper) pls
+      ds = take d $ map playerNumber $ filter (\p -> plpos p == Defender) pls
+      ms = take m $ map playerNumber $ filter (\p -> plpos p == Midfielder) pls
+      fs = take f $ map playerNumber $ filter (\p -> plpos p == Attacker) pls
       gmap = mkGoalkeeperFormation home gs
-      dmap = mkDefenderFormation home ds
-      mmap = mkMidfielderFormation home ms
-      fmp = mkAttackerFormation home fs
-  in gmap `M.union` dmap `M.union` mmap `M.union` fmp
+      (d, m, f) = fst $ SwosTactics.organizeTacticsByName stac
+      smap = M.fromList (zip (ds ++ ms ++ fs) (map plPosToTactic (SwosTactics.positions stac)))
+  in gmap `M.union` smap
+
+defaultTactic :: Tactic
+defaultTactic _ = (0.5, 0.5)
 
 formationPosition :: MatchState -> Player -> FRange
 formationPosition m pl =
-  let (kx, ky) = kickoffPosition m pl
-  in if playerHome pl == homeattacksup m
-       then (kx, ky * 1.5)
-       else (kx, 1 - (1 - ky) * 1.2)
+  let (plnum, plhome) = playerid pl
+      bp = absToRel' (pitchsize m) $ to2D $ ballposition $ ball m
+      sourcemap = if plhome then homeformation m else awayformation m
+      sfunc = M.findWithDefault defaultTactic plnum sourcemap
+  in checkFlip m $ sfunc bp
 
 formationPositionAbs :: MatchState -> Player -> FRange
 formationPositionAbs m pl =
   relToAbs m (formationPosition m pl)
 
+toKickoff :: Tactic -> Tactic
+toKickoff m b = let (x, y) = m b
+                in (x / 2, y)
+
 kickoffPosition :: MatchState -> Player -> FRange
 kickoffPosition m pl =
-  let (plnum, plhome) = playerid pl 
-      sourcemap       = if plhome then homeformation m else awayformation m
-  in checkFlip m $ M.findWithDefault (0.5, 0.5) plnum sourcemap
+  let (x, y) = formationPosition m pl
+  in if playerHome pl == homeattacksup m
+       then (x, y / 2)
+       else (x, 1 - (y / 2))
 
 kickoffPositionAbs :: MatchState -> Player -> FRange
 kickoffPositionAbs m pl =

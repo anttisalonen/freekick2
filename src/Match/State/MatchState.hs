@@ -36,7 +36,9 @@ data BallPlay = BeforeKickoff
 
 data MatchEvent = BallKicked
 
-type Formation = M.IntMap FRange
+type Tactic = FRange -> FRange
+
+type Formation = M.IntMap Tactic
 
 type PlayerMap = M.IntMap Player
 

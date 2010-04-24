@@ -18,6 +18,7 @@ import Graphics.UI.SDL as SDL
 import Graphics.Rendering.FTGL as FTGL
 
 import qualified Swos
+import qualified SwosTactics
 import SDLUtils
 import Drawing
 import FVector
@@ -44,7 +45,7 @@ data MatchTextureSet = MatchTextureSet {
   , humandrawsize     :: FRange
   }
 
-playMatch :: MatchTextureSet -> Font -> Font -> (Swos.SWOSTeam, TeamOwner) -> (Swos.SWOSTeam, TeamOwner) -> IO ()
+playMatch :: MatchTextureSet -> Font -> Font -> (Swos.SWOSTeam, SwosTactics.SWOSTactics, TeamOwner) -> (Swos.SWOSTeam, SwosTactics.SWOSTactics, TeamOwner) -> IO ()
 playMatch texs f f2 ht at = do
   let psize = (68, 105)
       contr = Nothing
@@ -56,21 +57,20 @@ playMatch texs f f2 ht at = do
 initMatchState :: DisplayList 
                -> FRange -> FRange 
                -> MatchTextureSet 
-               -> (Swos.SWOSTeam, TeamOwner) 
-               -> (Swos.SWOSTeam, TeamOwner) 
+               -> (Swos.SWOSTeam, SwosTactics.SWOSTactics, TeamOwner) 
+               -> (Swos.SWOSTeam, SwosTactics.SWOSTactics, TeamOwner) 
                -> Maybe PlayerID 
                -> Font -> Font
                -> MatchState
-initMatchState plist psize cpos pltexs (ht, ho) (at, ao) c f1 f2 = 
+initMatchState plist psize cpos pltexs (ht, htac, ho) (at, atac, ao) c f1 f2 = 
   MatchState plist [] psize cpos (Team hps hf 0 (Swos.teamname ht) ho) (Team aps af 0 (Swos.teamname at) ao) c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
              [] Nothing f1 f2 (mkStdGen 21) (False, 0) False 0 0.020 False True
              defaultParams
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
-        hf  = createFormation True hps
-        af  = createFormation False aps
-     
+        hf  = createFormation True hps htac
+        af  = createFormation False aps atac
 
 onPitchZ :: Float
 onPitchZ = 1
