@@ -21,7 +21,9 @@ offBallAI m pl | plpos pl == Goalkeeper =
        not (inDribbleDistance m pl) &&
        opponentLastTouched m pl
       then (pl, HoldBall)
-      else (pl, Goto (formationPositionAbs m pl))
+      else if nearestOwnToBall m pl == pl && kicktimer pl <= 0
+             then (pl, Goto (ballCoords m))
+             else (pl, Goto (formationPositionAbs m pl))
 offBallAI m pl | plpos (nearestOppToBall m pl) == Goalkeeper =
     (pl, Goto (formationPositionAbs m pl))
 offBallAI m pl | nearestOwnToBall m pl == pl && kicktimer pl <= 0 = 
