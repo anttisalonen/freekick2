@@ -82,8 +82,10 @@ data MatchParams = MatchParams {
   , plspeedmin         :: Float -- speed coeff with speed skill = 0
   , kickdistance       :: Float -- max kick distance
   , dribbledistance    :: Float -- max dribble distance
+  , catchdistance      :: Float -- max catch distance
   , maxkickheight      :: Float -- max ball height for kick
   , maxdribbleheight   :: Float -- max ball height for dribble
+  , maxcatchheight     :: Float -- max ball height for catch
   , maxballdspeed      :: Float -- max ball speed for dribbling
   , ctrlquitkey        :: SDLKey -- key to quit
   , ctrlshootkey       :: SDLKey -- key to shoot
@@ -105,8 +107,8 @@ defaultParams = MatchParams
   1000 -- kick timer
   20 4 1.5 0.25 -- ai pass
   20 0.7 -- speed
-  1.2 0.8 -- max distances
-  0.8 0.5 -- max heights
+  1.2 0.8 2.0 -- max distances
+  0.8 0.5 2.4 -- max heights
   50 -- max ball dribble speed
   SDLK_ESCAPE SDLK_RCTRL SDLK_LEFT SDLK_RIGHT SDLK_UP SDLK_DOWN SDLK_p
 
