@@ -1,11 +1,9 @@
 module SwosTactics
 where
 
-import Data.Bits
+import Data.Maybe
 import Data.Binary
 import Data.Binary.Get
-import Data.Binary.Put
-import qualified Data.ByteString.Char8 as C
 import Control.Monad
 import Control.Applicative
 import Data.Char
@@ -14,7 +12,7 @@ import System.FilePath
 
 import BinHelpers
 
-data SwosTactics = SwosTactics {
+data SWOSTactics = SWOSTactics {
     tacticname :: String
   , positions  :: [[Int]]
   }
@@ -29,7 +27,7 @@ putPlTac = mapM_ putPlPos
 getPlTac =
   replicateM 35 getPlPos
 
-instance Binary SwosTactics where
+instance Binary SWOSTactics where
   put s = do
     putName 9 (caps $ tacticname s)
     mapM_ putPlTac (positions s)
@@ -37,5 +35,26 @@ instance Binary SwosTactics where
   get = do
     n <- getBytes 9
     ms <- replicateM 10 getPlTac
-    return $ SwosTactics (getName n) ms
+    return $ SWOSTactics (getName n) ms
+
+loadTacticsFromDirectory :: FilePath -> IO [SWOSTactics]
+loadTacticsFromDirectory fp = do
+  fs <- getDirectoryContents fp
+  tss <- forM fs $ \f -> do
+    isfile <- doesFileExist (fp </> f)
+    if isfile
+      then do
+        t <- decodeFile (fp </> f)
+        return $ Just t
+      else return Nothing
+  return $ catMaybes tss
+
+organizeTacticsByName :: SWOSTactics -> ((Int, Int, Int), SWOSTactics)
+organizeTacticsByName t =
+  if length (tacticname t) > 2
+    then ((d, m, f), t)
+    else ((4, 4, 2), t)
+   where d = ord (tacticname t !! 0) - 48
+         m = ord (tacticname t !! 1) - 48
+         f = ord (tacticname t !! 2) - 48
 
