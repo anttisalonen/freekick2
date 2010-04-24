@@ -1,16 +1,11 @@
 module BinHelpers
 where
 
-import Data.Bits
 import Data.Binary
-import Data.Binary.Get
 import Data.Binary.Put
 import qualified Data.ByteString.Char8 as C
-import Control.Monad
 import Control.Applicative
 import Data.Char
-import System.Directory
-import System.FilePath
 
 getWord8Int :: Get Int
 getWord8Int = fromIntegral <$> getWord8
