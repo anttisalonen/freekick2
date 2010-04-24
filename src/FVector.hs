@@ -89,3 +89,7 @@ inside2s :: FRange -> Rectangle -> Bool
 inside2s (x, y) ((x1, y1), (x2, y2)) =
   x > x1 && x < x2 && y > y1 && y < y2
 
+inside2 :: FRange -> Rectangle -> Bool
+inside2 (x, y) ((x1, y1), (x2, y2)) =
+  x >= x1 && x <= x2 && y >= y1 && y <= y2
+
