@@ -59,7 +59,7 @@ goto (x, y) pl = do
       runvec = if dribbling then addvec `mul2` playerControlCoeff (plcontrolmin (params s)) pl else addvec
   when dribbling $ do
     sModBall $ modBallposition $ const $ to3D (plposition pl `add2` (addvec `mul2` 2)) 0
-    -- sModBall $ modBallvelocity (const nullFVector3)
+    sModBall $ modBallvelocity (const nullFVector3)
     sModPendingevents $ (BallKicked:)
     sModLasttouch $ const $ Just $ playerid pl
   modify $ modPlayer c $ modPlposition $ add2 runvec
