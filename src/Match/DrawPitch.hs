@@ -70,9 +70,5 @@ drawPitch grtexobj grtiling (px, py) = do
   draw2DArcAngled (px, 0) 1 lw 0 (0, -90) -- corner line 2
   draw2DArcAngled (0, py) 1 lw 0 (90, 90) -- corner line 3
   draw2DArcAngled (px, py) 1 lw 0 (-90, -90) -- corner line 4
-  drawSpot (px / 2 - 3.66, 0) (lw * 2.5) 0 -- goal post 1
-  drawSpot (px / 2 + 3.66, 0) (lw * 2.5) 0 -- goal post 2
-  drawSpot (px / 2 - 3.66, py) (lw * 2.5) 0 -- goal post 3
-  drawSpot (px / 2 + 3.66, py) (lw * 2.5) 0 -- goal post 4
 
 

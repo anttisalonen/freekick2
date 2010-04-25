@@ -10,6 +10,7 @@ import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
 import Graphics.Rendering.FTGL as FTGL
 
+import Drawing
 import DeriveMod
 import FVector
 
@@ -114,6 +115,8 @@ defaultParams = MatchParams
 
 data MatchState = MatchState {
     pitchlist      :: DisplayList
+  , matchgoal1     :: ImageInfo
+  , matchgoal2     :: ImageInfo
   , currkeys       :: [SDLKey]
   , pitchsize      :: (Float, Float)
   , campos         :: (Float, Float)
