@@ -360,9 +360,7 @@ runMatch = do
         updateBallPlay
         updateTimers
       t2 <- liftIO $ getCPUTime
-      let tdiff = floor $ fromIntegral (t2 - t1) * (1e-9 :: Float)
-          dt'   = floor (dt * 1000)
-      when (tdiff + 1 < dt') $ liftIO $ SDL.delay (dt' - tdiff)
-      when (tdiff - 3 > dt') $ liftIO $ putStrLn $ "Warning: step took " ++ show tdiff ++ " ms"
+      let tdiff = fromIntegral (t2 - t1) * (1e-12 :: Float)
+      sModFrametime $ const tdiff
       runMatch
 
