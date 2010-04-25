@@ -70,8 +70,8 @@ initMatchState plist psize cpos pltexs (ht, htac, ho) (at, atac, ao) c f1 f2 =
              defaultParams
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
-        hf  = createFormation True hps htac
-        af  = createFormation False aps atac
+        hf  = createFormation hps htac
+        af  = createFormation aps atac
 
 onPitchZ :: Float
 onPitchZ = 1

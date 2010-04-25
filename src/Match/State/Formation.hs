@@ -1,4 +1,9 @@
-module Match.State.Formation
+module Match.State.Formation(createFormation,
+  formationPositionAbs,
+  shouldDoKickoff,
+  shouldAssistKickoff,
+  kickoffPositionAbs
+  )
 where
 
 import qualified Data.IntMap as M
@@ -13,9 +18,8 @@ import Match.Ball
 import Match.State.MatchState
 import Match.State.MatchBase
 
-mkGoalkeeperFormation :: Bool -> [Int] -> Formation
-mkGoalkeeperFormation True  pls = M.fromList (zip pls (repeat (\_ -> (0.5, 0.02))))
-mkGoalkeeperFormation False pls = M.fromList (zip pls (repeat (\_ -> (0.5, 0.98))))
+mkGoalkeeperFormation :: [Int] -> Formation
+mkGoalkeeperFormation pls = M.fromList (zip pls (repeat (\_ -> (0.5, 0.02))))
 
 ballrectangle :: (Float, Float) -> Int
 ballrectangle (bx, by) = v
@@ -35,14 +39,14 @@ plpoint br ts =
 plPosToTactic :: [Int] -> Tactic
 plPosToTactic ps = \b -> plpoint (ballrectangle b) ps
 
-createFormation :: Bool -> PlayerMap -> SwosTactics.SWOSTactics -> Formation
-createFormation home pls' stac =
+createFormation :: PlayerMap -> SwosTactics.SWOSTactics -> Formation
+createFormation pls' stac =
   let pls = M.elems pls'
       gs = take 1 $ map playerNumber $ filter (\p -> plpos p == Goalkeeper) pls
       ds = take d $ map playerNumber $ filter (\p -> plpos p == Defender) pls
       ms = take m $ map playerNumber $ filter (\p -> plpos p == Midfielder) pls
       fs = take f $ map playerNumber $ filter (\p -> plpos p == Attacker) pls
-      gmap = mkGoalkeeperFormation home gs
+      gmap = mkGoalkeeperFormation gs
       (d, m, f) = fst $ SwosTactics.organizeTacticsByName stac
       smap = M.fromList (zip (ds ++ ms ++ fs) (map plPosToTactic (SwosTactics.positions stac)))
   in gmap `M.union` smap
@@ -56,7 +60,9 @@ formationPosition m pl =
       bp = absToRel' (pitchsize m) $ to2D $ ballposition $ ball m
       sourcemap = if plhome then homeformation m else awayformation m
       sfunc = M.findWithDefault defaultTactic plnum sourcemap
-  in checkFlip m $ sfunc bp
+  in if plhome == homeattacksup m
+       then sfunc bp
+       else flipSide $ sfunc bp
 
 formationPositionAbs :: MatchState -> Player -> FRange
 formationPositionAbs m pl =
