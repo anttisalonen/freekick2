@@ -364,14 +364,16 @@ runMatch = do
       drawMatch
       setControlledPlayer
       pause <- paused <$> State.get
-      when (not pause) $ do
-        execAI
-        handleMatchEvents
-        updateBallPosition
-        updateBallPlay
-        updateTimers
-      t2 <- liftIO $ getCPUTime
-      let tdiff = fromIntegral (t2 - t1) * (1e-12 :: Float)
-      sModFrametime $ const ((dt * 3 + tdiff) / 4)
+      if (not pause)
+        then do
+          execAI
+          handleMatchEvents
+          updateBallPosition
+          updateBallPlay
+          updateTimers
+          t2 <- liftIO $ getCPUTime
+          let tdiff = fromIntegral (t2 - t1) * (1e-12 :: Float)
+          sModFrametime $ const ((dt * 3 + tdiff) / 4)
+        else liftIO $ SDL.delay 20
       runMatch
 
