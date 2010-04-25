@@ -365,6 +365,6 @@ runMatch = do
         updateTimers
       t2 <- liftIO $ getCPUTime
       let tdiff = fromIntegral (t2 - t1) * (1e-12 :: Float)
-      sModFrametime $ const tdiff
+      sModFrametime $ const ((dt * 3 + tdiff) / 4)
       runMatch
 
