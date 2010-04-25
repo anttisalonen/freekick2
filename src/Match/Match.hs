@@ -22,6 +22,7 @@ import qualified SwosTactics
 import SDLUtils
 import Drawing
 import FVector
+import Utils
 
 import Match.DrawPitch
 import Match.Ball
@@ -105,7 +106,10 @@ cameraCenter w h s =
            OutOfPlay _ r        -> getRestartPoint r
            RestartPlay r        -> getRestartPoint r
            _                    -> to2D (ballposition $ ball s)
-   in (bx - (w / (2 * camZoomLevel)), by - (h / (2 * camZoomLevel)))
+       (px, py) = pitchsize s
+       nx = clamp 0 px bx
+       ny = clamp 0 py by
+   in (nx - (w / (2 * camZoomLevel)), ny - (h / (2 * camZoomLevel)))
 
 drawMatch :: Match ()
 drawMatch = do
