@@ -49,10 +49,10 @@ drawSpot :: (Float, Float) -> Float -> Float -> IO ()
 drawSpot p = draw2DArc p 0
 
 drawPitch :: TextureObject -> FRange -> FRange -> IO ()
-drawPitch grtexobj grtiling psize@(px, py) = do
+drawPitch grtexobj grtiling (px, py) = do
   loadIdentity
   color $ Color3 1.0 1.0 (1.0 :: GLfloat)
-  drawTiling grtexobj (return ()) ((0, 0), psize) (-1) grtiling
+  drawTiling grtexobj (return ()) ((-px, -py), (px * 3, py * 3)) (-1) grtiling
   color $ Color3 0.8 0.8 (0.8 :: GLfloat)
   drawRectBox ((0, 0), (px, py)) lw 0 -- pitch boundaries
   drawRect ((0, (py - lw) / 2), (px, lw)) 0  -- middle line
