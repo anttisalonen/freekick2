@@ -324,6 +324,8 @@ startMatch f1 f2 ht ho at ao _ = do
   ballshadowtex <- liftIO $ loadDataTexture Nothing "share/ball1shadow.png" (Just 0) (Just 8)
   gl1 <- liftIO $ loadDataTexture Nothing "share/goal1.png" Nothing Nothing
   gl2 <- liftIO $ loadDataTexture Nothing "share/goal2.png" Nothing Nothing
+  gl1shadow <- liftIO $ loadDataTexture Nothing "share/goal1shadow.png" Nothing Nothing
+  gl2shadow <- liftIO $ loadDataTexture Nothing "share/goal2shadow.png" Nothing Nothing
   allTactics <- tactics <$> State.get
   let ballimg = ImageInfo balltex (0.4, 0.4)
   let playershadowimg = ImageInfo playershadowtex (2, 2)
@@ -339,7 +341,9 @@ startMatch f1 f2 ht ho at ao _ = do
                                ballshadowimg 
                                (2, 2)
                                (ImageInfo gl1 (7.32, 2.44))
-                               (ImageInfo gl2 (7.32, 3.44))) 
+                               (ImageInfo gl2 (7.32, 3.44)) 
+                               (ImageInfo gl1shadow (9.32, 4.44))
+                               (ImageInfo gl2shadow (9.32, 4.44))) 
               f1 f2 (ht, htac, ho) (at, atac, ao)
   return False
 

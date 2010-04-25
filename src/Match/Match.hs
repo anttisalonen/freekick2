@@ -46,6 +46,8 @@ data MatchTextureSet = MatchTextureSet {
   , humandrawsize     :: FRange
   , goal1             :: ImageInfo
   , goal2             :: ImageInfo
+  , goal1shadow       :: ImageInfo
+  , goal2shadow       :: ImageInfo
   }
 
 playMatch :: MatchTextureSet -> Font -> Font -> (Swos.SWOSTeam, SwosTactics.SWOSTactics, TeamOwner) -> (Swos.SWOSTeam, SwosTactics.SWOSTactics, TeamOwner) -> IO ()
@@ -66,7 +68,7 @@ initMatchState :: DisplayList
                -> Font -> Font
                -> MatchState
 initMatchState plist psize cpos pltexs (ht, htac, ho) (at, atac, ao) c f1 f2 = 
-  MatchState plist (goal1 pltexs) (goal2 pltexs) 
+  MatchState plist (goal1 pltexs) (goal2 pltexs) (goal1shadow pltexs) (goal2shadow pltexs)
              [] psize cpos (Team hps hf 0 (Swos.teamname ht) ho) 
              (Team aps af 0 (Swos.teamname at) ao) c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
@@ -127,6 +129,8 @@ drawMatch = do
         (px, py) = pitchsize s
     setCamera' (cpos, (fromIntegral (w `div` camZoomLevel), fromIntegral (h `div` camZoomLevel)))
     callList (pitchlist s)
+    drawSprite' (imgtexture $ matchgoal1shadow s) ((px / 2 - 3.66 - 0.4, py - 1.0), imgsize $ matchgoal1shadow s) (-1)
+    drawSprite' (imgtexture $ matchgoal2shadow s) ((px / 2 - 3.66 - 0.4, -2.44 - 1.0), imgsize $ matchgoal2shadow s) (-1)
     drawSprite' (imgtexture $ matchgoal1 s) ((px / 2 - 3.66, py), imgsize $ matchgoal1 s) (-1)
     drawBallShadow $ ball s
     mapM_ drawPlayerShadow (allPlayers s)

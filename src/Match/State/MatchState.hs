@@ -114,29 +114,31 @@ defaultParams = MatchParams
   SDLK_ESCAPE SDLK_RCTRL SDLK_LEFT SDLK_RIGHT SDLK_UP SDLK_DOWN SDLK_p
 
 data MatchState = MatchState {
-    pitchlist      :: DisplayList
-  , matchgoal1     :: ImageInfo
-  , matchgoal2     :: ImageInfo
-  , currkeys       :: [SDLKey]
-  , pitchsize      :: (Float, Float)
-  , campos         :: (Float, Float)
-  , hometeam       :: Team
-  , awayteam       :: Team
-  , controlledpl   :: Maybe PlayerID
-  , ballplay       :: BallPlay
-  , ball           :: Ball
-  , pendingevents  :: [MatchEvent]
-  , lasttouch      :: Maybe PlayerID
-  , matchfont1     :: Font
-  , matchfont2     :: Font
-  , randomgen      :: StdGen
-  , matchtime      :: (Bool, Float) -- half time?, seconds
-  , paused         :: Bool
-  , kickpower      :: Int
-  , frametime      :: Float
-  , homekickoff    :: Bool
-  , homeattacksup  :: Bool
-  , params         :: MatchParams
+    pitchlist        :: DisplayList
+  , matchgoal1       :: ImageInfo
+  , matchgoal2       :: ImageInfo
+  , matchgoal1shadow :: ImageInfo
+  , matchgoal2shadow :: ImageInfo
+  , currkeys         :: [SDLKey]
+  , pitchsize        :: (Float, Float)
+  , campos           :: (Float, Float)
+  , hometeam         :: Team
+  , awayteam         :: Team
+  , controlledpl     :: Maybe PlayerID
+  , ballplay         :: BallPlay
+  , ball             :: Ball
+  , pendingevents    :: [MatchEvent]
+  , lasttouch        :: Maybe PlayerID
+  , matchfont1       :: Font
+  , matchfont2       :: Font
+  , randomgen        :: StdGen
+  , matchtime        :: (Bool, Float) -- half time?, seconds
+  , paused           :: Bool
+  , kickpower        :: Int
+  , frametime        :: Float
+  , homekickoff      :: Bool
+  , homeattacksup    :: Bool
+  , params           :: MatchParams
   }
 $(deriveMods ''MatchState)
 
