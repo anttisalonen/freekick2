@@ -77,7 +77,7 @@ kickoffPosition m pl =
   let (x, y) = formationPosition m pl
   in if playerHome pl == homeattacksup m
        then (x, y / 2)
-       else (x, 1 - (y / 2))
+       else (x, 1.0 - ((1 - y) / 2))
 
 kickoffPositionAbs :: MatchState -> Player -> FRange
 kickoffPositionAbs m pl =
