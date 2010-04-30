@@ -7,6 +7,7 @@ import Data.Word
 
 import FVector
 import DeriveMod
+import Utils
 
 type Skill = Float
 
@@ -43,6 +44,30 @@ data GenFormation = GenFormation {
     tactics     :: [Tactic]
   , playerorder :: (Int, Int, Int)
   }
+
+plPosToTactic :: [Int] -> Gen.Tactic
+plPosToTactic ps = \b -> plpoint (ballrectangle b) ps
+
+ballrectangle :: (Float, Float) -> Int
+ballrectangle (bx, by) = v
+  where v = y * 5 + x
+        x = clamp 0 4 $ floor $ (1 - bx) * 5
+        y = clamp 0 6 $ floor $ by * 7
+
+plpoint :: Int -> [Int] -> FRange
+plpoint br ts = 
+  let pn = ts !! (min 34 br)
+      xp = pn `mod` 15
+      yp = pn `div` 16
+      x = 1 - fromIntegral xp * (1/15)
+      y = fromIntegral yp * (1/16)
+  in (x, y)
+
+simpleFormationToGenFormation :: SimpleFormation -> GenFormation
+simpleFormationToGenFormation st =
+  let ds = simpleorder st
+      ts = map plPosToTactic (simpletactics st)
+  in GenFormation ts ds
 
 data SimpleFormation = SimpleFormation {
     simpletactics  :: [[Int]]

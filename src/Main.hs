@@ -6,6 +6,7 @@ import System.Directory
 import Data.Maybe
 import Data.List
 import System.IO (hPutStrLn, stderr)
+import System.FilePath
 import Control.Exception
 import Prelude hiding (catch)
 import Data.Ord
@@ -13,18 +14,18 @@ import Data.Function
 import Control.Monad.State as State
 import Control.Applicative
 
+import qualified Data.ByteString.Char8 as Str
+
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL hiding (SrcAlpha)
 import Graphics.Rendering.FTGL as FTGL
 
 import qualified Gen
 import SDLUtils
-import Swos
-import SWOSShell
-import SwosTactics
 import Tree
 import Match.Match
 import Drawing
+import Listings
 
 import Paths_freekick2
 
@@ -86,103 +87,6 @@ structureTeams ts = f "World" ts (countryContinent . nationToString, continentTo
         nationToString    = showTeamNation . Gen.teamnation
         divisionToString  = showDivision . Gen.teamdivision
         continentToString = show . countryContinent . nationToString
-
-data Continent = NorthAmerica
-               | SouthAmerica
-               | Oceania
-               | Africa
-               | Asia
-               | Europe
-               | OtherContinent
-  deriving (Ord, Eq)
-
-instance Show Continent where
-  show NorthAmerica   = "North America"
-  show SouthAmerica   = "South America"
-  show Oceania        = "Oceania"
-  show Africa         = "Africa"
-  show Asia           = "Asia"
-  show Europe         = "Europe"
-  show OtherContinent = "Other"
-
-countryContinent :: String -> Continent
-countryContinent "El Salvador" = NorthAmerica
-countryContinent "Mexico" = NorthAmerica
-countryContinent "U.S.A." = NorthAmerica
-countryContinent "Argentina" = SouthAmerica
-countryContinent "Bolivia" = SouthAmerica
-countryContinent "Brazil" = SouthAmerica
-countryContinent "Chile" = SouthAmerica
-countryContinent "Colombia" = SouthAmerica
-countryContinent "Ecuador" = SouthAmerica
-countryContinent "Paraguay" = SouthAmerica
-countryContinent "Peru" = SouthAmerica
-countryContinent "Surinam" = SouthAmerica
-countryContinent "Uruguay" = SouthAmerica
-countryContinent "Venezuela" = SouthAmerica
-countryContinent "Australia" = Oceania
-countryContinent "New Zealand" = Oceania
-countryContinent "India" = Asia
-countryContinent "Japan" = Asia
-countryContinent "Taiwan" = Asia
-countryContinent "Algeria" = Africa
-countryContinent "Ghana" = Africa
-countryContinent "South Africa" = Africa
-countryContinent "Albania" = Europe
-countryContinent "Austria" = Europe
-countryContinent "Belarus" = Europe
-countryContinent "Belgium" = Europe
-countryContinent "Bulgaria" = Europe
-countryContinent "Croatia" = Europe
-countryContinent "Cyprus" = Europe
-countryContinent "Czech Republic" = Europe
-countryContinent "Denmark" = Europe
-countryContinent "England" = Europe
-countryContinent "Estonia" = Europe
-countryContinent "Faroe Islands" = Europe
-countryContinent "Finland" = Europe
-countryContinent "France" = Europe
-countryContinent "Germany" = Europe
-countryContinent "Greece" = Europe
-countryContinent "Holland" = Europe
-countryContinent "The Netherlands" = Europe
-countryContinent "Hungary" = Europe
-countryContinent "Iceland" = Europe
-countryContinent "Israel" = Europe
-countryContinent "Italy" = Europe
-countryContinent "Latvia" = Europe
-countryContinent "Lithuania" = Europe
-countryContinent "Luxembourg" = Europe
-countryContinent "Malta" = Europe
-countryContinent "Ireland" = Europe
-countryContinent "Northern Ireland" = Europe
-countryContinent "Norway" = Europe
-countryContinent "Poland" = Europe
-countryContinent "Portugal" = Europe
-countryContinent "Republic Ireland" = Europe
-countryContinent "Romania" = Europe
-countryContinent "Russia" = Europe
-countryContinent "San Marino" = Europe
-countryContinent "Scotland" = Europe
-countryContinent "Slovakia" = Europe
-countryContinent "Slovenia" = Europe
-countryContinent "Spain" = Europe
-countryContinent "Sweden" = Europe
-countryContinent "Switzerland" = Europe
-countryContinent "Turkey" = Europe
-countryContinent "Ukraine" = Europe
-countryContinent "Wales" = Europe
-countryContinent "Yugoslavia" = Europe
-countryContinent "Bosnia-Herzegovina" = Europe
-countryContinent "Serbia" = Europe
-countryContinent "Montenegro" = Europe
-countryContinent "Kosovo" = Europe
-countryContinent "FYR Macedonia" = Europe
-countryContinent "Macedonia" = Europe
-countryContinent "Azerbaijan" = Europe
-countryContinent "Armenia" = Europe
-countryContinent "Georgia" = Europe
-countryContinent _ = OtherContinent
 
 getFontAndTexture :: MenuBlock (Font, TextureObject)
 getFontAndTexture = do
@@ -470,9 +374,11 @@ run = do
   tex <- loadDataTexture Nothing "share/bg.png" Nothing Nothing 
   f <- loadDataFont 24 48 "share/DejaVuSans.ttf"
   f2 <- loadDataFont 16 48 "share/DejaVuSans.ttf"
-  allteams <- structureTeams `fmap` map swosTeamToGenTeam `fmap` loadTeamsFromDirectory "swosteams"
-  swosts <- fmap organizeTacticsByName `fmap` loadTacticsFromDirectory "swostactics"
-  let ts = zip (map fst swosts) (map swosTacticsToGenFormation (map snd swosts))
+  teamdir <- getDataFileName "share/teams"
+  allteams <- structureTeams `fmap` readDirList teamdir
+  tacticdir <- getDataFileName "share/tactics"
+  simplets <- readDir tacticdir
+  let ts = zip (map Gen.simpleorder simplets) (map Gen.simpleFormationToGenFormation simplets)
   let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel f (\_ -> return True)
       button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel f (browseTeams allteams)
       browseLabel = "Friendly"
@@ -480,4 +386,28 @@ run = do
       buttons = [button1, button2]
       rc = RenderContext f f2 tex
   evalStateT (genLoop buttons) (WorldContext rc allteams Nothing Nothing ts)
+
+readDir :: (Read a) => FilePath -> IO [a]
+readDir fp = do
+  fs <- getDirectoryContents fp
+  tss <- forM fs $ \f -> do
+    isfile <- doesFileExist (fp </> f)
+    if isfile
+      then do
+        contents <- liftM Str.unpack $ Str.readFile (fp </> f)
+        return $ Just $ read contents
+      else return Nothing
+  return $ catMaybes tss
+
+readDirList :: (Read a) => FilePath -> IO [a]
+readDirList fp = do
+  fs <- getDirectoryContents fp
+  tss <- forM fs $ \f -> do
+    isfile <- doesFileExist (fp </> f)
+    if isfile
+      then do
+        contents <- liftM Str.unpack $ Str.readFile (fp </> f)
+        return $ read contents
+      else return []
+  return $ concat tss
 
