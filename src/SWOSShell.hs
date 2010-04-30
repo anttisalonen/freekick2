@@ -77,6 +77,17 @@ swosTacticsToGenFormation stac =
       ts = map plPosToTactic (SwosTactics.positions stac)
   in GenFormation ts (d, m, f)
 
+swosTacticsToSimpleFormation :: SwosTactics.SWOSTactics -> SimpleFormation
+swosTacticsToSimpleFormation stac =
+  let (d, m, f) = fst $ SwosTactics.organizeTacticsByName stac
+  in SimpleFormation (SwosTactics.positions stac) (d, m, f)
+
+simpleFormationToGenFormation :: SimpleFormation -> GenFormation
+simpleFormationToGenFormation st =
+  let ds = simpleorder st
+      ts = map plPosToTactic (simpletactics st)
+  in GenFormation ts ds
+
 plPosToTactic :: [Int] -> Gen.Tactic
 plPosToTactic ps = \b -> plpoint (ballrectangle b) ps
 
