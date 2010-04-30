@@ -316,9 +316,15 @@ startMatch
 startMatch f1 f2 ht ho at ao _ = do
   ptex <- liftIO $ loadDataTexture Nothing "share/grass1.png" Nothing Nothing
   let hcf = colorKit (primarykit ht)
-  pltex1 <- liftIO $ loadDataTexture (Just hcf) "share/player1.png" (Just 0) (Just 32)
+  pltexhs <- liftIO $ loadDataTexture (Just hcf) "share/player1-s.png" (Just 0) (Just 32)
+  pltexhn <- liftIO $ loadDataTexture (Just hcf) "share/player1-n.png" (Just 0) (Just 32)
+  pltexhw <- liftIO $ loadDataTexture (Just hcf) "share/player1-w.png" (Just 0) (Just 32)
+  pltexhe <- liftIO $ loadDataTexture (Just hcf) "share/player1-e.png" (Just 0) (Just 32)
   let acf = colorKit (primarykit at)
-  pltex2 <- liftIO $ loadDataTexture (Just acf) "share/player1.png" (Just 0) (Just 32)
+  pltexas <- liftIO $ loadDataTexture (Just acf) "share/player1-s.png" (Just 0) (Just 32)
+  pltexan <- liftIO $ loadDataTexture (Just acf) "share/player1-n.png" (Just 0) (Just 32)
+  pltexaw <- liftIO $ loadDataTexture (Just acf) "share/player1-w.png" (Just 0) (Just 32)
+  pltexae <- liftIO $ loadDataTexture (Just acf) "share/player1-e.png" (Just 0) (Just 32)
   balltex <- liftIO $ loadDataTexture Nothing "share/ball1.png" (Just 0) (Just 8)
   playershadowtex <- liftIO $ loadDataTexture Nothing "share/player1shadow.png" (Just 0) (Just 32)
   ballshadowtex <- liftIO $ loadDataTexture Nothing "share/ball1shadow.png" (Just 0) (Just 8)
@@ -334,8 +340,8 @@ startMatch f1 f2 ht ho at ao _ = do
       atac = fromMaybe (snd $ head allTactics) $ lookup (numPositions (teamtactics at)) allTactics
   liftIO $ playMatch 
               (MatchTextureSet ptex 
-                               pltex1 
-                               pltex2 
+                               (PlayerTextureSet pltexhs pltexhn pltexhw pltexhe)
+                               (PlayerTextureSet pltexas pltexan pltexaw pltexae)
                                playershadowimg 
                                ballimg 
                                ballshadowimg 

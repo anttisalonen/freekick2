@@ -8,6 +8,7 @@ where
 import Control.Monad.State as State
 import System.Random
 
+import Utils
 import FVector
 
 import Match.Ball
@@ -62,6 +63,9 @@ goto (x, y) pl = do
     sModBall $ modBallvelocity (const nullFVector3)
     sModPendingevents $ (BallKicked:)
     sModLasttouch $ const $ Just $ playerid pl
+  -- yup, this is correct (0 degrees = north)
+  when (len2squared runvec > 0.0000001) $
+    sModPlayer c $ modPlrotation $ const $ wrap 0 360 $ radToDeg $ atan2 (-diffx) (-diffy)
   modify $ modPlayer c $ modPlposition $ add2 runvec
 
 getRandomR :: (Random a) => (a, a) -> State StdGen a

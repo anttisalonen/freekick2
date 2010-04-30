@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Match.Match(playMatch, TeamOwner(..),
-  MatchTextureSet(..))
+  MatchTextureSet(..), PlayerTextureSet(..))
 where
 
 import Control.Monad
@@ -38,8 +38,8 @@ import Match.State.Controls
 
 data MatchTextureSet = MatchTextureSet {
     pitchtexture      :: TextureObject
-  , hometexture       :: TextureObject
-  , awaytexture       :: TextureObject
+  , hometextureset    :: PlayerTextureSet
+  , awaytextureset    :: PlayerTextureSet
   , playershadowinfo  :: ImageInfo
   , ballimginfo       :: ImageInfo
   , ballshadowinfo    :: ImageInfo
@@ -95,8 +95,8 @@ createPlayers home texs psize t =
        (zip plnums 
             (map (swosPlayerToPlayer onPitchZ
                                      home 
-                                     (hometexture texs) 
-                                     (awaytexture texs) 
+                                     (hometextureset texs) 
+                                     (awaytextureset texs) 
                                      (playershadowinfo texs)
                                      (humandrawsize texs) 
                                      psize) 
