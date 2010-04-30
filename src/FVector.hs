@@ -74,6 +74,9 @@ dist2 p1 p2 = sqrt $ dist2squared p1 p2
 len2 :: FRange -> Float
 len2 v = dist2 v (0, 0)
 
+len2squared :: FRange -> Float
+len2squared v = dist2squared v (0, 0)
+
 diff2 :: FRange -> FRange -> FRange
 diff2 (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
 
