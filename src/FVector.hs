@@ -99,3 +99,9 @@ inside3 :: FVector3 -> Cube -> Bool
 inside3 (x, y, z) ((x1, y1, z1), (x2, y2, z2)) =
   x >= x1 && x <= x2 && y >= y1 && y <= y2 && z >= z1 && z <= z2
 
+inside3cube :: Cube -> Cube -> Bool
+inside3cube ((tx1, ty1, tz1), (tx2, ty2, tz2)) ((x1, y1, z1), (x2, y2, z2)) =
+  ((tx1 >= x1 && tx1 <= x2) || (tx2 >= x1 && tx2 <= x2) || (tx1 <= x1 && tx2 >= x2)) &&
+  ((ty1 >= y1 && ty1 <= y2) || (ty2 >= y1 && ty2 <= y2) || (ty1 <= y1 && ty2 >= y2)) &&
+  ((tz1 >= z1 && tz1 <= z2) || (tz2 >= z1 && tz2 <= z2) || (tz1 <= z1 && tz2 >= z2))
+
