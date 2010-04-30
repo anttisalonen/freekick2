@@ -4,7 +4,6 @@ where
 import System.Environment
 import System.Directory
 import System.FilePath
-import System.IO
 import Control.Monad
 
 import Data.Binary
@@ -24,10 +23,10 @@ swostogen teams from to = do
         if teams
           then do
             dt <- loadTeamsFromFile (from </> f)
-            withFile (to </> f) WriteMode (\h -> hPutStrLn h (show (map swosTeamToGenTeam dt)))
+            encodeFile (to </> f) (map swosTeamToGenTeam dt)
           else do
             dt <- decodeFile (from </> f)
-            withFile (to </> f) WriteMode (\h -> hPutStrLn h (show (swosTacticsToSimpleFormation dt)))
+            encodeFile (to </> f) (map swosTacticsToSimpleFormation [dt])
       else return ()
 
 main = do
