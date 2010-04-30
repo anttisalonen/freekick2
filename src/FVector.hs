@@ -7,6 +7,8 @@ type FVector3 = (Float, Float, Float)
 
 type Rectangle = ((Float, Float), (Float, Float))
 
+type Cube = ((Float, Float, Float), (Float, Float, Float))
+
 getX, getY, getZ :: FVector3 -> Float
 getX (x, _, _) = x
 getY (_, y, _) = y
@@ -92,4 +94,8 @@ inside2s (x, y) ((x1, y1), (x2, y2)) =
 inside2 :: FRange -> Rectangle -> Bool
 inside2 (x, y) ((x1, y1), (x2, y2)) =
   x >= x1 && x <= x2 && y >= y1 && y <= y2
+
+inside3 :: FVector3 -> Cube -> Bool
+inside3 (x, y, z) ((x1, y1, z1), (x2, y2, z2)) =
+  x >= x1 && x <= x2 && y >= y1 && y <= y2 && z >= z1 && z <= z2
 
