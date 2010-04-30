@@ -2,8 +2,10 @@
 module Gen
 where
 
-import Control.Monad.State
+import Control.Monad.State(modify)
 import Data.Word
+
+import Data.Binary
 
 import FVector
 import DeriveMod
@@ -22,8 +24,26 @@ data PlayerSkills = PlayerSkills {
   deriving (Show, Read)
 $(deriveMods ''PlayerSkills)
 
+instance Binary Gen.PlayerSkills where
+  put (PlayerSkills a b c d) = put a >> put b >> put c >> put d
+  get = get >>= \a -> get >>= \b -> get >>= \c -> get >>= \d -> return (PlayerSkills a b c d)
+
 data PlPosition = Goalkeeper | Defender | Midfielder | Attacker
   deriving (Eq, Show, Read)
+
+instance Binary Gen.PlPosition where
+  put Goalkeeper = putWord8 0
+  put Defender = putWord8 1
+  put Midfielder = putWord8 2
+  put Attacker = putWord8 3
+  get = do
+    tag_ <- getWord8
+    case tag_ of
+      0 -> return Goalkeeper
+      1 -> return Defender
+      2 -> return Midfielder
+      3 -> return Attacker
+      _ -> fail "no parse"
 
 isGoalkeeper p = genplpos p == Goalkeeper
 isDefender p = genplpos p == Defender
@@ -37,6 +57,10 @@ data GenPlayer = GenPlayer {
   , plskills      :: PlayerSkills
   }
   deriving (Show, Read)
+
+instance Binary Gen.GenPlayer where
+  put (GenPlayer a b c d) = put a >> put b >> put c >> put d
+  get = get >>= \a -> get >>= \b -> get >>= \c -> get >>= \d -> return (GenPlayer a b c d)
 
 type Color = (Word8, Word8, Word8)
 
@@ -75,6 +99,10 @@ data SimpleFormation = SimpleFormation {
   }
   deriving (Show, Read)
 
+instance Binary Gen.SimpleFormation where
+  put (SimpleFormation a b) = put a >> put b
+  get = get >>= \a -> get >>= \b -> return (SimpleFormation a b)
+
 data Kit = Kit {
     kittype         :: Int
   , kitfirstcolor   :: Color
@@ -83,6 +111,10 @@ data Kit = Kit {
   , kitsockscolor   :: Color
   }
   deriving (Show, Read)
+
+instance Binary Gen.Kit where
+  put (Kit a b c d e) = put a >> put b >> put c >> put d >> put e
+  get = get >>= \a -> get >>= \b -> get >>= \c -> get >>= \d -> get >>= \e -> return (Kit a b c d e)
 
 data GenTeam = GenTeam {
     teamnation     :: Int
@@ -93,4 +125,8 @@ data GenTeam = GenTeam {
   , teamplayers    :: [GenPlayer]
   }
   deriving (Show, Read)
+
+instance Binary Gen.GenTeam where
+  put (GenTeam a b c d e f) = put a >> put b >> put c >> put d >> put e >> put f
+  get = get >>= \a -> get >>= \b -> get >>= \c -> get >>= \d -> get >>= \e -> get >>= \f -> return (GenTeam a b c d e f)
 
