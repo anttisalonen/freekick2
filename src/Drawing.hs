@@ -15,7 +15,8 @@ module Drawing(ImageInfo(..),
   drawSprite,
   drawSprite',
   topDownDepth,
-  drawBox)
+  drawBox,
+  TextureObject)
 where
 
 import System.IO.Error hiding (catch)
