@@ -10,6 +10,7 @@ import System.Random
 
 import Utils
 import FVector
+import qualified Gen
 
 import Match.Ball
 import Match.Player
@@ -39,7 +40,7 @@ actP p a = do
 
 playerControlCoeff :: Float -> Player -> Float
 playerControlCoeff mn pl =
-  mn + (1 - mn) * (controlskill $ plskills pl)
+  mn + (1 - mn) * (Gen.controlskill $ plskills pl)
 
 goto :: FRange -> Player -> Match ()
 goto (x, y) pl = do
@@ -76,8 +77,8 @@ getKickVec v p = do
   s <- State.get
   let (x, y, z) = capLen3 (maxkickveclen (params s)) v
       relskill = if len2 (x, y) < (stillpassveclen (params s)) && z < (stillpassvecheight (params s))
-                   then passingskill $ plskills p
-                   else shootingskill $ plskills p
+                   then Gen.passingskill $ plskills p
+                   else Gen.shootingskill $ plskills p
       vlen = len3 (x, y, z)
   let xvarmax = vlen * ((maxkickvar (params s)) * (1 - relskill))
   let yvarmax = vlen * ((maxkickvar (params s)) * (1 - relskill))

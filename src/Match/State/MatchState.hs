@@ -13,9 +13,12 @@ import Graphics.Rendering.FTGL as FTGL
 import Drawing
 import DeriveMod
 import FVector
+import Gen
 
 import Match.Ball
 import Match.Player
+
+type Formation = M.IntMap Gen.Tactic
 
 data Restart = ThrowIn FRange
              | GoalKick FRange
@@ -37,14 +40,7 @@ data BallPlay = BeforeKickoff
 
 data MatchEvent = BallKicked
 
-type Tactic = FRange -> FRange
-
-type Formation = M.IntMap Tactic
-
 type PlayerMap = M.IntMap Player
-
-data TeamOwner = HumanOwner | AIOwner
-  deriving (Eq)
 
 data Team = Team {
     players    :: PlayerMap

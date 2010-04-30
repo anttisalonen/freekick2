@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Match.Match(playMatch, TeamOwner(..),
-  MatchTextureSet(..), PlayerTextureSet(..))
+  MatchTextureSet(..), PlayerTextureSet(..)
+  )
 where
 
 import Control.Monad
@@ -17,17 +18,15 @@ import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL
 import Graphics.Rendering.FTGL as FTGL
 
-import qualified Swos
-import qualified SwosTactics
 import SDLUtils
 import Drawing
 import FVector
 import Utils
+import Gen
 
 import Match.DrawPitch
 import Match.Ball
 import Match.Player
-import Match.SWOSShell
 
 import Match.State.MatchState
 import Match.State.MatchBase
@@ -50,7 +49,7 @@ data MatchTextureSet = MatchTextureSet {
   , goal2shadow       :: ImageInfo
   }
 
-playMatch :: MatchTextureSet -> Font -> Font -> (Swos.SWOSTeam, SwosTactics.SWOSTactics, TeamOwner) -> (Swos.SWOSTeam, SwosTactics.SWOSTactics, TeamOwner) -> IO ()
+playMatch :: MatchTextureSet -> Font -> Font -> (GenTeam, GenFormation, TeamOwner) -> (GenTeam, GenFormation, TeamOwner) -> IO ()
 playMatch texs f f2 ht at = do
   let psize = (68, 105)
       contr = Nothing
@@ -62,41 +61,44 @@ playMatch texs f f2 ht at = do
 initMatchState :: DisplayList 
                -> FRange -> FRange 
                -> MatchTextureSet 
-               -> (Swos.SWOSTeam, SwosTactics.SWOSTactics, TeamOwner) 
-               -> (Swos.SWOSTeam, SwosTactics.SWOSTactics, TeamOwner) 
+               -> (GenTeam, GenFormation, TeamOwner)
+               -> (GenTeam, GenFormation, TeamOwner)
                -> Maybe PlayerID 
                -> Font -> Font
                -> MatchState
 initMatchState plist psize cpos pltexs (ht, htac, ho) (at, atac, ao) c f1 f2 = 
   MatchState plist (goal1 pltexs) (goal2 pltexs) (goal1shadow pltexs) (goal2shadow pltexs)
-             [] psize cpos (Team hps hf 0 (Swos.teamname ht) ho) 
-             (Team aps af 0 (Swos.teamname at) ao) c BeforeKickoff 
+             [] psize cpos 
+             (Team hps (genFormationToFormation hps htac) 0 (genteamname ht) ho) 
+             (Team aps (genFormationToFormation aps atac) 0 (genteamname at) ao) 
+             c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
              [] Nothing f1 f2 (mkStdGen 21) (False, 0) False 0 0.020 False True
              defaultParams
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
-        hf  = createFormation hps htac
-        af  = createFormation aps atac
 
 onPitchZ :: Float
 onPitchZ = 1
 
-createPlayers :: Bool -> MatchTextureSet -> FRange -> Swos.SWOSTeam -> PlayerMap
+genTeamToTeam :: MatchTextureSet -> FRange -> Bool -> Formation -> TeamOwner -> GenTeam -> Team
+genTeamToTeam pltexs psize home frm town g = Team pls frm 0 tnam town
+  where tnam = genteamname g
+        pls  = createPlayers home pltexs psize g
+
+createPlayers :: Bool -> MatchTextureSet -> FRange -> GenTeam -> PlayerMap
 createPlayers home texs psize t =
-  let (d, m, f) = Swos.numPositions (Swos.teamtactics t)
-      g  = take 1 $ filter (\p -> Swos.isGoalkeeper (Swos.plposition p)) (Swos.teamplayers t)
-      ds = take d $ filter (\p -> Swos.isDefender (Swos.plposition p)) (Swos.teamplayers t)
-      ms = take m $ filter (\p -> Swos.isMidfielder (Swos.plposition p)) (Swos.teamplayers t)
-      fs = take f $ filter (\p -> Swos.isAttacker (Swos.plposition p)) (Swos.teamplayers t)
+  let (d, m, f) = teamtactics t
+      g  = take 1 $ filter (\p -> isGoalkeeper p) (teamplayers t)
+      ds = take d $ filter (\p -> isDefender p) (teamplayers t)
+      ms = take m $ filter (\p -> isMidfielder p) (teamplayers t)
+      fs = take f $ filter (\p -> isAttacker p) (teamplayers t)
       pllist = g ++ ds ++ ms ++ fs
-      plnums = map Swos.plnumber pllist
+      plnums = map plnumber pllist
   in M.fromList 
        (zip plnums 
-            (map (swosPlayerToPlayer onPitchZ
-                                     home 
-                                     (hometextureset texs) 
-                                     (awaytextureset texs) 
+            (map (genPlayerToPlayer onPitchZ home
+                                     (if home then hometextureset texs else awaytextureset texs)
                                      (playershadowinfo texs)
                                      (humandrawsize texs) 
                                      psize) 

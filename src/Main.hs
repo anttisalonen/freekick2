@@ -12,14 +12,15 @@ import Data.Ord
 import Data.Function
 import Control.Monad.State as State
 import Control.Applicative
-import Data.Word
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL hiding (SrcAlpha)
 import Graphics.Rendering.FTGL as FTGL
 
+import qualified Gen
 import SDLUtils
 import Swos
+import SWOSShell
 import SwosTactics
 import Tree
 import Match.Match
@@ -36,12 +37,12 @@ data RenderContext = RenderContext {
 data WorldContext = WorldContext {
     rendercontext :: RenderContext
   , worldteams    :: TeamStructure
-  , hometeam      :: Maybe (SWOSTeam, TeamOwner)
-  , awayteam      :: Maybe (SWOSTeam, TeamOwner)
-  , tactics       :: [((Int, Int, Int), SWOSTactics)]
+  , hometeam      :: Maybe (Gen.GenTeam, TeamOwner)
+  , awayteam      :: Maybe (Gen.GenTeam, TeamOwner)
+  , tactics       :: [((Int, Int, Int), Gen.GenFormation)]
   }
 
-type TeamStructure = Tree String (String, [SWOSTeam])
+type TeamStructure = Tree String (String, [Gen.GenTeam])
 
 drawGenScene :: TextureObject -> [Button a] -> IO ()
 drawGenScene tex btns = do
@@ -63,27 +64,27 @@ data Button a = Button { buttonMaterial :: Material
 drawButton :: Button a -> IO ()
 drawButton b = drawBox (buttonMaterial b) (return ()) (buttonBox b) 0 (Just (buttonLabel b, buttonFont b))
 
-modHometeam :: (Maybe (SWOSTeam, TeamOwner) -> Maybe (SWOSTeam, TeamOwner)) -> WorldContext -> WorldContext
+modHometeam :: (Maybe (Gen.GenTeam, TeamOwner) -> Maybe (Gen.GenTeam, TeamOwner)) -> WorldContext -> WorldContext
 modHometeam f c = c{hometeam = f (hometeam c)}
 
-modAwayteam :: (Maybe (SWOSTeam, TeamOwner) -> Maybe (SWOSTeam, TeamOwner)) -> WorldContext -> WorldContext
+modAwayteam :: (Maybe (Gen.GenTeam, TeamOwner) -> Maybe (Gen.GenTeam, TeamOwner)) -> WorldContext -> WorldContext
 modAwayteam f c = c{awayteam = f (awayteam c)}
 
 type MenuBlock = StateT WorldContext IO
 
-structureTeams :: [SWOSTeam] -> TeamStructure
-structureTeams ts = f "World" ts (countryContinent . nationToString, continentToString) `g` (teamnation, nationToString) `g` (teamdivision, divisionToString)
-  where f :: (Ord a) => String -> [SWOSTeam] -> (SWOSTeam -> a, SWOSTeam -> String) -> TeamStructure
+structureTeams :: [Gen.GenTeam] -> TeamStructure
+structureTeams ts = f "World" ts (countryContinent . nationToString, continentToString) `g` (Gen.teamnation, nationToString) `g` (Gen.teamdivision, divisionToString)
+  where f :: (Ord a) => String -> [Gen.GenTeam] -> (Gen.GenTeam -> a, Gen.GenTeam -> String) -> TeamStructure
         f n teams (func, nfunc) = 
           let ts' = splitBy func teams
           in Node n (map (\tp -> Leaf (nfunc (head tp), tp)) ts')
-        g :: (Ord a) => TeamStructure -> (SWOSTeam -> a, SWOSTeam -> String) -> TeamStructure
+        g :: (Ord a) => TeamStructure -> (Gen.GenTeam -> a, Gen.GenTeam -> String) -> TeamStructure
         g tr (func, nfunc) =
           go tr
             where go (Node i ts')    = Node i (map go ts')
                   go (Leaf (i, ts')) = f i ts' (func, nfunc)
-        nationToString    = showTeamNation . teamnation
-        divisionToString  = showDivision . teamdivision
+        nationToString    = showTeamNation . Gen.teamnation
+        divisionToString  = showDivision . Gen.teamdivision
         continentToString = show . countryContinent . nationToString
 
 data Continent = NorthAmerica
@@ -198,26 +199,26 @@ getTSLabel (Node i _)    = i
 getTSLabel (Leaf (i, _)) = i
 
 getTSChildrenTitles :: TeamStructure -> [String]
-getTSChildrenTitles = (either (map getTSLabel) (map teamname)) . getTSChildren
+getTSChildrenTitles = (either (map getTSLabel) (map Gen.genteamname)) . getTSChildren
 
 getTSTitles :: TeamStructure -> (String, [String])
 getTSTitles t = (getTSLabel t, getTSChildrenTitles t)
 
-getTSChildren :: TeamStructure -> Either [TeamStructure] [SWOSTeam]
+getTSChildren :: TeamStructure -> Either [TeamStructure] [Gen.GenTeam]
 getTSChildren (Node _ ts)    = Left ts
 getTSChildren (Leaf (_, ts)) = Right ts
 
-getTSChildrenByTitle :: TeamStructure -> String -> Maybe (Either TeamStructure SWOSTeam)
+getTSChildrenByTitle :: TeamStructure -> String -> Maybe (Either TeamStructure Gen.GenTeam)
 getTSChildrenByTitle ts n =
   case getTSChildren ts of
     Left ts'  -> liftM Left  $ find (\t -> getTSLabel t == n) ts'
-    Right tms -> liftM Right $ find (\t -> teamname t == n) tms
+    Right tms -> liftM Right $ find (\t -> Gen.genteamname t == n) tms
 
 hasJust :: (Eq a) => a -> Maybe a -> Bool
 hasJust _ Nothing  = False
 hasJust n (Just m) = n == m
 
-rotateTeam :: SWOSTeam -> Maybe (SWOSTeam, TeamOwner) -> Maybe (SWOSTeam, TeamOwner)
+rotateTeam :: Gen.GenTeam -> Maybe (Gen.GenTeam, TeamOwner) -> Maybe (Gen.GenTeam, TeamOwner)
 rotateTeam t Nothing                = Just (t, AIOwner)
 rotateTeam _ (Just (t, AIOwner))    = Just (t, HumanOwner)
 rotateTeam _ (Just (_, HumanOwner)) = Nothing
@@ -226,18 +227,18 @@ getOwner :: String -> WorldContext -> Maybe TeamOwner
 getOwner t c =
   let t1 = case hometeam c of
              Nothing       -> Nothing
-             Just (ht, ho) -> if teamname ht == t then Just ho else Nothing
+             Just (ht, ho) -> if Gen.genteamname ht == t then Just ho else Nothing
       t2 = case awayteam c of
              Nothing       -> Nothing
-             Just (ht, ho) -> if teamname ht == t then Just ho else Nothing
+             Just (ht, ho) -> if Gen.genteamname ht == t then Just ho else Nothing
   in t1 `mplus` t2
 
-clickedOnTeam :: SWOSTeam -> MenuBlock ()
+clickedOnTeam :: Gen.GenTeam -> MenuBlock ()
 clickedOnTeam t = do
   c <- State.get
-  if hasJust (teamname t) (liftM (teamname . fst) (hometeam c))
+  if hasJust (Gen.genteamname t) (liftM (Gen.genteamname . fst) (hometeam c))
     then modify $ modHometeam $ rotateTeam t
-    else if hasJust (teamname t) (liftM (teamname . fst) (awayteam c))
+    else if hasJust (Gen.genteamname t) (liftM (Gen.genteamname . fst) (awayteam c))
            then modify $ modAwayteam $ rotateTeam t
            else if isNothing (hometeam c)
                   then modify $ modHometeam $ rotateTeam t
@@ -262,7 +263,7 @@ browserButtonHandler toplevel lbl =
     Just (Right t) -> clickedOnTeam t >> return False
 
 skinMagic, shirtMagic, shortsMagic, socksMagic, shoesMagic,
-  hair1Magic, hair2Magic, eyesMagic :: (Word8, Word8, Word8)
+  hair1Magic, hair2Magic, eyesMagic :: Gen.Color
 skinMagic = (197, 169, 58)
 shirtMagic = (255, 0, 0)
 shortsMagic = (255, 240, 0)
@@ -272,55 +273,30 @@ hair1Magic = (0, 0, 0)
 hair2Magic = (16, 16, 16)
 eyesMagic = (140, 85, 14)
 
-grey, white, black, orange, red, blue, brown, lightblue,
-  green, yellow :: (Word8, Word8, Word8)
-grey = (128, 128, 128)
-white = (255, 255, 255)
-black = (0, 0, 0)
-orange = (255, 127, 0)
-red = (255, 0, 0)
-blue = (0, 0, 255)
-brown = (150, 75, 0)
-lightblue = (173, 216, 230)
-green = (0, 255, 0)
-yellow = (255, 255, 0)
-
-swosColorToColor :: SWOSColor -> (Word8, Word8, Word8)
-swosColorToColor Swos.Grey = grey
-swosColorToColor Swos.White = white
-swosColorToColor Swos.Black = black
-swosColorToColor Swos.Orange = orange
-swosColorToColor Swos.Red = red
-swosColorToColor Swos.Blue = blue
-swosColorToColor Swos.Brown = brown
-swosColorToColor Swos.LightBlue = lightblue
-swosColorToColor Swos.Green = green
-swosColorToColor Swos.Yellow = yellow
-
-colorKit :: SWOSKit -> ChangeRGB
+colorKit :: Gen.Kit -> ChangeRGB
 colorKit k c 
-  | c == shirtMagic  = swosColorToColor (kitfirstcolor k)
-  | c == shortsMagic = swosColorToColor (kitshortcolor k)
-  | c == socksMagic  = swosColorToColor (kitsockscolor k)
+  | c == shirtMagic  = Gen.kitfirstcolor k
+  | c == shortsMagic = Gen.kitshortcolor k
+  | c == socksMagic  = Gen.kitsockscolor k
   | otherwise        = c
 
 startMatch
      :: Font
      -> Font
-     -> SWOSTeam
+     -> Gen.GenTeam
      -> TeamOwner
-     -> SWOSTeam
+     -> Gen.GenTeam
      -> TeamOwner
      -> String
      -> MenuBlock Bool
 startMatch f1 f2 ht ho at ao _ = do
   ptex <- liftIO $ loadDataTexture Nothing "share/grass1.png" Nothing Nothing
-  let hcf = colorKit (primarykit ht)
+  let hcf = colorKit (Gen.primarykit ht)
   pltexhs <- liftIO $ loadDataTexture (Just hcf) "share/player1-s.png" (Just 0) (Just 32)
   pltexhn <- liftIO $ loadDataTexture (Just hcf) "share/player1-n.png" (Just 0) (Just 32)
   pltexhw <- liftIO $ loadDataTexture (Just hcf) "share/player1-w.png" (Just 0) (Just 32)
   pltexhe <- liftIO $ loadDataTexture (Just hcf) "share/player1-e.png" (Just 0) (Just 32)
-  let acf = colorKit (primarykit at)
+  let acf = colorKit (Gen.primarykit at)
   pltexas <- liftIO $ loadDataTexture (Just acf) "share/player1-s.png" (Just 0) (Just 32)
   pltexan <- liftIO $ loadDataTexture (Just acf) "share/player1-n.png" (Just 0) (Just 32)
   pltexaw <- liftIO $ loadDataTexture (Just acf) "share/player1-w.png" (Just 0) (Just 32)
@@ -336,8 +312,8 @@ startMatch f1 f2 ht ho at ao _ = do
   let ballimg = ImageInfo balltex (0.4, 0.4)
   let playershadowimg = ImageInfo playershadowtex (2, 2)
   let ballshadowimg = ImageInfo ballshadowtex (0.4, 0.4)
-      htac = fromMaybe (snd $ head allTactics) $ lookup (numPositions (teamtactics ht)) allTactics
-      atac = fromMaybe (snd $ head allTactics) $ lookup (numPositions (teamtactics at)) allTactics
+      htac = fromMaybe (snd $ head allTactics) $ lookup (Gen.teamtactics ht) allTactics
+      atac = fromMaybe (snd $ head allTactics) $ lookup (Gen.teamtactics at) allTactics
   liftIO $ playMatch 
               (MatchTextureSet ptex 
                                (PlayerTextureSet pltexhs pltexhn pltexhw pltexhe)
@@ -373,14 +349,14 @@ continueToMatch = do
                           ((20, h - 100 - n * 25), (240, 20)) 
                           t f2 (\_ -> return False))
                 (zip [0..] t1labels)
-              t1labels = map plname (teamplayers ht)
+              t1labels = map Gen.plname (Gen.teamplayers ht)
               team2buttons = map 
                 (\(n, t) -> 
                    Button (Left SOrange)
                           ((520, h - 100 - n * 25), (240, 20)) 
                           t f2 (\_ -> return False))
                 (zip [0..] t2labels)
-              t2labels = map plname (teamplayers at)
+              t2labels = map Gen.plname (Gen.teamplayers at)
               titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title f1 (\_ -> return False)
               contlabel = "Play"
               contbutton = Button (Left SOrange) 
@@ -494,8 +470,9 @@ run = do
   tex <- loadDataTexture Nothing "share/bg.png" Nothing Nothing 
   f <- loadDataFont 24 48 "share/DejaVuSans.ttf"
   f2 <- loadDataFont 16 48 "share/DejaVuSans.ttf"
-  allteams <- structureTeams `fmap` loadTeamsFromDirectory "teams"
-  ts <- (fmap . fmap) organizeTacticsByName $ loadTacticsFromDirectory "tactics"
+  allteams <- structureTeams `fmap` map swosTeamToGenTeam `fmap` loadTeamsFromDirectory "swosteams"
+  swosts <- fmap organizeTacticsByName `fmap` loadTacticsFromDirectory "swostactics"
+  let ts = zip (map fst swosts) (map swosTacticsToGenFormation (map snd swosts))
   let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel f (\_ -> return True)
       button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel f (browseTeams allteams)
       browseLabel = "Friendly"

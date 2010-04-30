@@ -5,6 +5,7 @@ import Data.List
 import Data.Function
 
 import FVector
+import qualified Gen
 
 import Match.Player
 import Match.Ball
@@ -15,7 +16,7 @@ import Match.State.Actions
 import Match.State.Formation
 
 offBallAI :: MatchState -> Player -> PlAction
-offBallAI m pl | plpos pl == Goalkeeper =
+offBallAI m pl | plpos pl == Gen.Goalkeeper =
     if nearestOwnToBall m pl == pl && 
        inCatchDistance m pl && 
        not (inDribbleDistance m pl) &&
@@ -24,7 +25,7 @@ offBallAI m pl | plpos pl == Goalkeeper =
       else if nearestOwnToBall m pl == pl && kicktimer pl <= 0
              then (pl, Goto (ballCoords m))
              else (pl, Goto (formationPositionAbs m pl))
-offBallAI m pl | plpos (nearestOppToBall m pl) == Goalkeeper =
+offBallAI m pl | plpos (nearestOppToBall m pl) == Gen.Goalkeeper =
     (pl, Goto (formationPositionAbs m pl))
 offBallAI m pl | nearestOwnToBall m pl == pl && kicktimer pl <= 0 = 
     (pl, Goto (ballCoords m))
@@ -39,7 +40,7 @@ supportingOffense m pl =
 
 supportingDefense :: MatchState -> Player -> Bool
 supportingDefense m pl =
-  plpos pl /= Goalkeeper && nearestIsHP m /= playerHome pl && supportingPlayer m pl
+  plpos pl /= Gen.Goalkeeper && nearestIsHP m /= playerHome pl && supportingPlayer m pl
 
 supportingPlayer :: MatchState -> Player -> Bool
 supportingPlayer m pl = pl == (opsToBallByDist m pl !! 1)
@@ -146,7 +147,7 @@ shouldRestart m (ThrowIn p) pl =
 shouldRestart m (CornerKick p) pl =
   pl == nearestOPToPointwoGK m p pl && (homeRestarts m == playerHome pl)
 shouldRestart m (GoalKick _) pl =
-  plpos pl == Goalkeeper && (homeRestarts m == playerHome pl)
+  plpos pl == Gen.Goalkeeper && (homeRestarts m == playerHome pl)
 
 beforeRestartAI :: MatchState -> Restart -> [PlAction]
 beforeRestartAI m r =
@@ -166,7 +167,7 @@ restart m _ pl =
     else snd $ bestPassTarget m pl
 
 onBallAI :: MatchState -> Player -> PlAction
-onBallAI m pl | plpos pl == Goalkeeper =
+onBallAI m pl | plpos pl == Gen.Goalkeeper =
   if distanceToBall m (nearestOppToBall m pl) < 10
     then (pl, Idle)
     else generalOnBallAI m pl

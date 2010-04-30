@@ -8,6 +8,7 @@ import Data.List
 import Data.Ord
 
 import FVector
+import qualified Gen
 
 import Match.Ball
 import Match.Player
@@ -16,7 +17,7 @@ import Match.State.MatchState
 
 plspeed :: Float -> Float -> Float -> Player -> Float
 plspeed sc smin dt p = sc * plsp * dt
-  where plsp = smin + (1 - smin) * shootingskill (plskills p)
+  where plsp = smin + (1 - smin) * Gen.shootingskill (plskills p)
 
 goUp :: Float -> FRange -> FRange
 goUp n (x, y) = (x, y + n)
@@ -45,7 +46,7 @@ inCatchDistance m p =
   let (bx, by, bz) = ballposition (ball m)
       pp = plposition p
       ppos = plpos p
-  in if ppos /= Goalkeeper
+  in if ppos /= Gen.Goalkeeper
        then False
        else if bz > maxcatchheight (params m)
               then False
@@ -111,11 +112,11 @@ nearestToBallAwoGK m = nearestToPointAwoGK m (to2D $ ballposition $ ball m)
 
 nearestToPointHwoGK :: MatchState -> FRange -> Player
 nearestToPointHwoGK m p =
-  head $ sortBy (comparing (\pl -> dist2 p (plposition pl))) (filter (\pl -> plpos pl /= Goalkeeper) $ M.elems $ homeplayers m)
+  head $ sortBy (comparing (\pl -> dist2 p (plposition pl))) (filter (\pl -> plpos pl /= Gen.Goalkeeper) $ M.elems $ homeplayers m)
 
 nearestToPointAwoGK :: MatchState -> FRange -> Player
 nearestToPointAwoGK m p =
-  head $ sortBy (comparing (\pl -> dist2 p (plposition pl))) (filter (\pl -> plpos pl /= Goalkeeper) $ M.elems $ awayplayers m)
+  head $ sortBy (comparing (\pl -> dist2 p (plposition pl))) (filter (\pl -> plpos pl /= Gen.Goalkeeper) $ M.elems $ awayplayers m)
 
 distanceToBall :: MatchState -> Player -> Float
 distanceToBall m pl = dist2 (to2D (ballposition (ball m))) (plposition pl)

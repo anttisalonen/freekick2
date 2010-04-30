@@ -1,27 +1,29 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Match.Player
+module Match.Player(TeamOwner(..),
+  PlayerID,
+  PlayerTextureSet(..),
+  Player(..),
+  modPlrotation,
+  modPlposition,
+  modKicktimer,
+  playerHome,
+  playerNumber,
+  genPlayerToPlayer,
+  drawPlayer,
+  drawPlayerShadow)
 where
 
 import Control.Monad.State
 
 import Drawing
 import FVector
+import qualified Gen
 import DeriveMod
 
-data PlPosition = Goalkeeper | Defender | Midfielder | Attacker
+data TeamOwner = HumanOwner | AIOwner
   deriving (Eq)
 
 type PlayerID = (Int, Bool)
-
-type Skill = Float
-
-data PlayerSkills = PlayerSkills {
-    shootingskill :: Skill
-  , passingskill  :: Skill
-  , speedskill    :: Skill
-  , controlskill  :: Skill
-  }
-$(deriveMods ''PlayerSkills)
 
 data PlayerTextureSet = PlayerTextureSet {
     pltextures  :: TextureObject
@@ -37,9 +39,9 @@ data Player = Player {
   , plshadow     :: ImageInfo
   , plposz       :: Float
   , playerid     :: PlayerID
-  , plpos        :: PlPosition
+  , plpos        :: Gen.PlPosition
   , kicktimer    :: Int
-  , plskills     :: PlayerSkills
+  , plskills     :: Gen.PlayerSkills
   , plrotation   :: Float
   }
 $(deriveMods ''Player)
@@ -87,4 +89,18 @@ playerShadowRectangle p = ((x, y), (w, h))
         (bx, by) = fst $ playerTexRectangle p
         (w, h) = imgsize $ plshadow p
         (_, bh) = imgsize $ plshadow p
+
+genPlayerToPlayer :: Float 
+                  -> Bool
+                  -> PlayerTextureSet
+                  -> ImageInfo 
+                  -> FRange 
+                  -> FRange 
+                  -> Gen.GenPlayer
+                  -> Player
+genPlayerToPlayer inz home pltexset plshimg hsize (px, py) p = 
+  Player (px - 10, py / 2) hsize pltexset plshimg inz ((Gen.plnumber p), home) npos 0 psk 180
+    where npos = Gen.genplpos p
+          psk = Gen.plskills p
+
 

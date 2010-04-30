@@ -1,16 +1,16 @@
-module Match.State.Formation(createFormation,
+module Match.State.Formation(
   formationPositionAbs,
   shouldDoKickoff,
   shouldAssistKickoff,
+  genFormationToFormation,
   kickoffPositionAbs
   )
 where
 
 import qualified Data.IntMap as M
 
-import Utils
 import FVector
-import qualified SwosTactics
+import qualified Gen
 
 import Match.Player
 import Match.Ball
@@ -18,40 +18,7 @@ import Match.Ball
 import Match.State.MatchState
 import Match.State.MatchBase
 
-mkGoalkeeperFormation :: [Int] -> Formation
-mkGoalkeeperFormation pls = M.fromList (zip pls (repeat (\_ -> (0.5, 0.02))))
-
-ballrectangle :: (Float, Float) -> Int
-ballrectangle (bx, by) = v
-  where v = y * 5 + x
-        x = clamp 0 4 $ floor $ (1 - bx) * 5
-        y = clamp 0 6 $ floor $ by * 7
-
-plpoint :: Int -> [Int] -> FRange
-plpoint br ts = 
-  let pn = ts !! (min 34 br)
-      xp = pn `mod` 15
-      yp = pn `div` 16
-      x = 1 - fromIntegral xp * (1/15)
-      y = fromIntegral yp * (1/16)
-  in (x, y)
-
-plPosToTactic :: [Int] -> Tactic
-plPosToTactic ps = \b -> plpoint (ballrectangle b) ps
-
-createFormation :: PlayerMap -> SwosTactics.SWOSTactics -> Formation
-createFormation pls' stac =
-  let pls = M.elems pls'
-      gs = take 1 $ map playerNumber $ filter (\p -> plpos p == Goalkeeper) pls
-      ds = take d $ map playerNumber $ filter (\p -> plpos p == Defender) pls
-      ms = take m $ map playerNumber $ filter (\p -> plpos p == Midfielder) pls
-      fs = take f $ map playerNumber $ filter (\p -> plpos p == Attacker) pls
-      gmap = mkGoalkeeperFormation gs
-      (d, m, f) = fst $ SwosTactics.organizeTacticsByName stac
-      smap = M.fromList (zip (ds ++ ms ++ fs) (map plPosToTactic (SwosTactics.positions stac)))
-  in gmap `M.union` smap
-
-defaultTactic :: Tactic
+defaultTactic :: Gen.Tactic
 defaultTactic _ = (0.5, 0.5)
 
 formationPosition :: MatchState -> Player -> FRange
@@ -68,7 +35,7 @@ formationPositionAbs :: MatchState -> Player -> FRange
 formationPositionAbs m pl =
   relToAbs m (formationPosition m pl)
 
-toKickoff :: Tactic -> Tactic
+toKickoff :: Gen.Tactic -> Gen.Tactic
 toKickoff m b = let (x, y) = m b
                 in (x / 2, y)
 
@@ -95,18 +62,34 @@ shouldAssistKickoff m pl = kickoffAssister m == playerid pl
 
 kickoffer :: MatchState -> PlayerID
 kickoffer m =
-  let forws = filter (\p -> plpos p == Attacker) (M.elems $ pls m)
-      mids = filter (\p -> plpos p == Midfielder) (M.elems $ pls m)
-      defs = filter (\p -> plpos p == Defender) (M.elems $ pls m)
+  let forws = filter (\p -> plpos p == Gen.Attacker) (M.elems $ pls m)
+      mids = filter (\p -> plpos p == Gen.Midfielder) (M.elems $ pls m)
+      defs = filter (\p -> plpos p == Gen.Defender) (M.elems $ pls m)
       pls = if homekickoff m then homeplayers else awayplayers
   in playerid $ head (forws ++ mids ++ defs)
 
 kickoffAssister :: MatchState -> PlayerID
 kickoffAssister m =
-  let forws = filter (\p -> plpos p == Attacker) (M.elems $ pls m)
-      mids = filter (\p -> plpos p == Midfielder) (M.elems $ pls m)
-      defs = filter (\p -> plpos p == Defender) (M.elems $ pls m)
+  let forws = filter (\p -> plpos p == Gen.Attacker) (M.elems $ pls m)
+      mids = filter (\p -> plpos p == Gen.Midfielder) (M.elems $ pls m)
+      defs = filter (\p -> plpos p == Gen.Defender) (M.elems $ pls m)
       pls = if homekickoff m then homeplayers else awayplayers
   in playerid $ head $ tail (forws ++ mids ++ defs)
+
+mkGoalkeeperFormation :: [Int] -> Formation
+mkGoalkeeperFormation pls = M.fromList (zip pls (repeat (\_ -> (0.5, 0.02))))
+
+genFormationToFormation :: PlayerMap -> Gen.GenFormation -> Formation
+genFormationToFormation pls' frm =
+  let pls = M.elems pls'
+      gs = take 1 $ map playerNumber $ filter (\p -> plpos p == Gen.Goalkeeper) pls
+      ds = take d $ map playerNumber $ filter (\p -> plpos p == Gen.Defender) pls
+      ms = take m $ map playerNumber $ filter (\p -> plpos p == Gen.Midfielder) pls
+      fs = take f $ map playerNumber $ filter (\p -> plpos p == Gen.Attacker) pls
+      gmap = mkGoalkeeperFormation gs
+      (d, m, f) = Gen.playerorder frm
+      ts = Gen.tactics frm
+      smap = M.fromList (zip (ds ++ ms ++ fs) ts)
+  in gmap `M.union` smap
 
 
