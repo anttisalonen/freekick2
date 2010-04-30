@@ -108,9 +108,9 @@ defaultParams = MatchParams
   1000 -- kick timer
   20 4 1.5 0.25 -- ai pass
   20 0.7 -- speed
-  1.2 0.8 2.0 -- max distances
-  0.8 0.5 2.4 -- max heights
-  50 -- max ball dribble speed
+  1.2 0.8 1.0 -- max distances
+  0.8 0.5 1.9 -- max heights
+  30 -- max ball dribble speed
   SDLK_ESCAPE SDLK_RCTRL SDLK_LEFT SDLK_RIGHT SDLK_UP SDLK_DOWN SDLK_p
 
 data MatchState = MatchState {
