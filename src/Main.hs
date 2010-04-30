@@ -492,7 +492,7 @@ run = do
   ts <- (fmap . fmap) organizeTacticsByName $ loadTacticsFromDirectory "tactics"
   let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel f (\_ -> return True)
       button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel f (browseTeams allteams)
-      browseLabel = "Browse"
+      browseLabel = "Friendly"
       quitLabel = "Quit"
       buttons = [button1, button2]
       rc = RenderContext f f2 tex
