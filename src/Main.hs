@@ -14,7 +14,7 @@ import Data.Function
 import Control.Monad.State as State
 import Control.Applicative
 
-import qualified Data.ByteString.Char8 as Str
+import Data.Binary
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL hiding (SrcAlpha)
@@ -375,7 +375,7 @@ run = do
   f <- loadDataFont 24 48 "share/DejaVuSans.ttf"
   f2 <- loadDataFont 16 48 "share/DejaVuSans.ttf"
   teamdir <- getDataFileName "share/teams"
-  allteams <- structureTeams `fmap` readDirList teamdir
+  allteams <- structureTeams `fmap` readDir teamdir
   tacticdir <- getDataFileName "share/tactics"
   simplets <- readDir tacticdir
   let ts = zip (map Gen.simpleorder simplets) (map Gen.simpleFormationToGenFormation simplets)
@@ -387,27 +387,13 @@ run = do
       rc = RenderContext f f2 tex
   evalStateT (genLoop buttons) (WorldContext rc allteams Nothing Nothing ts)
 
-readDir :: (Read a) => FilePath -> IO [a]
+readDir :: (Binary a) => FilePath -> IO [a]
 readDir fp = do
   fs <- getDirectoryContents fp
   tss <- forM fs $ \f -> do
     isfile <- doesFileExist (fp </> f)
     if isfile
-      then do
-        contents <- liftM Str.unpack $ Str.readFile (fp </> f)
-        return $ Just $ read contents
-      else return Nothing
-  return $ catMaybes tss
-
-readDirList :: (Read a) => FilePath -> IO [a]
-readDirList fp = do
-  fs <- getDirectoryContents fp
-  tss <- forM fs $ \f -> do
-    isfile <- doesFileExist (fp </> f)
-    if isfile
-      then do
-        contents <- liftM Str.unpack $ Str.readFile (fp </> f)
-        return $ read contents
+      then decodeFile (fp </> f)
       else return []
   return $ concat tss
 
