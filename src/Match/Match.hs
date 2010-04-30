@@ -195,7 +195,7 @@ updateBallPlay = do
     DoKickoff -> do
       return () -- updated by handleMatchEvent BallKicked
     InPlay -> do
-      let (bx, by) = to2D $ ballposition $ ball s
+      let (bx, by, bz) = ballposition $ ball s
       when (bx < 0) $ do -- throwin from the left
         let restartpos = (0, by)
         sModBallplay $ const $ OutOfPlayWaiting (oopthrowintimer (params s)) (ThrowIn restartpos)
@@ -203,7 +203,7 @@ updateBallPlay = do
         let restartpos = (px, by)
         sModBallplay $ const $ OutOfPlayWaiting (oopthrowintimer (params s)) (ThrowIn restartpos)
       when (by < 0) $ do  -- corner kick or goal kick on bottom half
-        if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 -- goal
+        if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 && bz < 2.44 -- goal
           then do
             let restartpos = (px / 2, py / 2)
             if homeattacksup s
@@ -229,7 +229,7 @@ updateBallPlay = do
                         else (px / 2 + 9.15, 5.5)
                 sModBallplay $ const $ OutOfPlayWaiting (oopgoalkicktimer (params s)) (GoalKick restartpos)
       when (by > py) $ do  -- corner kick of goal kick on upper half
-        if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 -- goal
+        if bx > px / 2 - 3.66 && bx < px / 2 + 3.66 && bz < 2.44 -- goal
           then do
             let restartpos = (px / 2, py / 2)
             if homeattacksup s
@@ -292,8 +292,45 @@ updateBallPosition :: Match ()
 updateBallPosition = do
   s <- State.get
   let dt = frametime s
+      (px, py) = pitchsize s
+      postradius = 0.05
+      postdiameter = 2 * postradius
+      postheight = 2.44
+      goaldepth = 2.44
+      post1 = CylinderZ (px / 2 - 3.66, 0, -1) postdiameter postheight
+      post2 = CylinderZ (px / 2 + 3.66, 0, -1) postdiameter postheight
+      post3 = CylinderZ (px / 2 - 3.66, py, -1) postdiameter postheight
+      post4 = CylinderZ (px / 2 + 3.66, py, -1) postdiameter postheight
+      bar1 = CylinderX (px / 2 - 3.66, 0, postheight) postdiameter 7.32
+      bar2 = CylinderX (px / 2 - 3.66, py, postheight) postdiameter 7.32
+      wall1 = (((px / 2 - 3.66 - postradius, -goaldepth - postdiameter,   -1 - postradius), 
+                (0 + postdiameter,            goaldepth + postradius,     postheight + 1 + postdiameter)), 
+                (-0.1, 1, 1))
+      wall2 = (((px / 2 - 3.66 - postradius, -goaldepth - postdiameter,   -1 - postradius), 
+                (7.32 + postdiameter,         0 + postradius,             postheight + 1 + postdiameter)), 
+                (1, -0.1, 1))
+      wall3 = (((px / 2 + 3.66 - postradius, -goaldepth - postdiameter,   -1 - postradius), 
+                (0 + postdiameter,           goaldepth + postradius,      postheight + 1 + postdiameter)), 
+                (-0.1, 1, 1))
+      wall4 = (((px / 2 - 3.66 - postradius, -goaldepth - postdiameter,   postheight - postradius), 
+                (7.32 + postdiameter,        goaldepth + postradius,      0 + postdiameter)), 
+                (1, 1, -0.5))
+      wall5 = (((px / 2 - 3.66 - postradius, py,                          -1 - postradius), 
+                (0 + postdiameter,           goaldepth + postradius,      postheight + 1 + postdiameter)), 
+                (-0.1, 1, 1))
+      wall6 = (((px / 2 - 3.66 - postradius, py + goaldepth,              -1 - postradius), 
+                (7.32 + postdiameter,        0 + postradius,              postheight + 1 + postdiameter)), 
+                (1, -0.1, 1))
+      wall7 = (((px / 2 + 3.66 - postradius, py,                          -1 - postradius), 
+                (0 + postdiameter,           goaldepth + postradius,      postheight + 1 + postdiameter)), 
+                (-0.1, 1, 1))
+      wall8 = (((px / 2 - 3.66 - postradius, py,                          postheight - postradius), 
+                (7.32  + postdiameter,       goaldepth + postradius,      0 + postdiameter)), 
+                (1, 1, -0.5))
   sModBall $ modBallposition (*+* ((ballvelocity (ball s)) *** dt))
-  sModBall $ collCheckBall (ballbounciness (params s))
+  sModBall $ collCheckGroundBall (ballbounciness (params s))
+  sModBall $ collCheckPostsBall dt [post1, post2, post3, post4, bar1, bar2]
+  sModBall $ collCheckNetBall dt [wall1, wall2, wall3, wall4, wall5, wall6, wall7, wall8]
   sModBall $ gravitateBall (ballgravitypull (params s)) dt
   sModBall $ slowDownBall (ballairviscosity (params s)) (ballrollfriction (params s)) dt
 
