@@ -18,10 +18,11 @@ data PlayerSkills = PlayerSkills {
   , speedskill    :: Skill
   , controlskill  :: Skill
   }
+  deriving (Show, Read)
 $(deriveMods ''PlayerSkills)
 
 data PlPosition = Goalkeeper | Defender | Midfielder | Attacker
-  deriving (Eq)
+  deriving (Eq, Show, Read)
 
 isGoalkeeper p = genplpos p == Goalkeeper
 isDefender p = genplpos p == Defender
@@ -34,6 +35,7 @@ data GenPlayer = GenPlayer {
   , genplpos      :: PlPosition
   , plskills      :: PlayerSkills
   }
+  deriving (Show, Read)
 
 type Color = (Word8, Word8, Word8)
 
@@ -42,6 +44,12 @@ data GenFormation = GenFormation {
   , playerorder :: (Int, Int, Int)
   }
 
+data SimpleFormation = SimpleFormation {
+    simpletactics  :: [[Int]]
+  , simpleorder    :: (Int, Int, Int)
+  }
+  deriving (Show, Read)
+
 data Kit = Kit {
     kittype         :: Int
   , kitfirstcolor   :: Color
@@ -49,6 +57,7 @@ data Kit = Kit {
   , kitshortcolor   :: Color
   , kitsockscolor   :: Color
   }
+  deriving (Show, Read)
 
 data GenTeam = GenTeam {
     teamnation     :: Int
@@ -58,5 +67,5 @@ data GenTeam = GenTeam {
   , primarykit     :: Kit
   , teamplayers    :: [GenPlayer]
   }
-
+  deriving (Show, Read)
 
