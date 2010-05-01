@@ -29,7 +29,7 @@ act :: Player -> Action -> Match ()
 act p (Goto t)    = goto t p
 act p (Kick t)    = kick t p
 act p (HoldBall)  = hold p
-act _ Idle        = return ()
+act p Idle        = idle p
 
 actP :: PlayerID -> Action -> Match ()
 actP p a = do
@@ -50,7 +50,8 @@ goto (x, y) pl = do
       (diffx, diffy) = (curx - x, cury - y)
       c              = playerid pl
       spd            = plspeed (plspeedcoeff (params s)) (plspeedmin (params s)) dt pl
-      addvec = if abs diffx < spd && abs diffy < spd
+      atpos          = abs diffx < spd && abs diffy < spd
+      addvec = if atpos
                  then (-diffx, -diffy)
                  else
                    let ang = atan2 diffy diffx
@@ -64,9 +65,7 @@ goto (x, y) pl = do
     sModBall $ modBallvelocity (const nullFVector3)
     sModPendingevents $ (BallKicked:)
     sModLasttouch $ const $ Just $ playerid pl
-  -- yup, this is correct (0 degrees = north)
-  when (len2squared runvec > 0.0000001) $
-    sModPlayer c $ modPlrotation $ const $ wrap 0 360 $ radToDeg $ atan2 (-diffx) (-diffy)
+  doRot (Just (x, y)) pl
   modify $ modPlayer c $ modPlposition $ add2 runvec
 
 getRandomR :: (Random a) => (a, a) -> State StdGen a
@@ -112,4 +111,24 @@ hold pl = do
     sModBall $ modBallvelocity $ const $ nullFVector3
     sModBall $ modBallposition $ const $ to3D (plposition pl) 0
     sModLasttouch $ const $ Just $ playerid pl
+
+doRot :: Maybe FRange -> Player -> Match ()
+doRot mtgt pl = do
+  s <- State.get
+  let (curx, cury)   = plposition pl
+      bpos@(bx, by)  = to2D $ ballposition $ ball s
+      gpos           = oppositeGoalAbs s pl
+      atball         = abs (curx - bx) < 0.5 && abs (cury - by) < 0.5
+      maintgtsimple  = if atball then gpos else bpos
+      (ttx, tty)     = case mtgt of
+        Nothing       -> maintgtsimple
+        Just (tx, ty) -> let attgt = abs (curx - tx) < 0.5 && abs (cury - ty) < 0.5
+                         in if attgt
+                              then maintgtsimple
+                              else (tx, ty)
+  -- yup, this is correct (0 degrees = north)
+  sModPlayer (playerid pl) $ modPlrotation $ const $ wrap 0 360 $ radToDeg $ atan2 (ttx - curx) (tty - cury)
+
+idle :: Player -> Match ()
+idle pl = doRot Nothing pl
 
