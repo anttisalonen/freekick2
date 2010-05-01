@@ -96,9 +96,9 @@ flipCompare a b
 
 passValue :: MatchState -> Player -> Player -> (Float, Player)
 passValue m passer receiver =
-  let sval = 0.5 * shootPositionValue m (homeattacksup m == playerHome receiver) (plposition receiver)
+  let sval = 1.0 * shootPositionValue m (homeattacksup m == playerHome receiver) (plposition receiver)
       dist = dist2 (plposition passer) (plposition receiver)
-  in (sval + ratePassDist dist, receiver)
+  in (sval + 0.5 * ratePassDist dist, receiver)
 
 -- range: -50 .. 50
 ratePassDist :: Float -> Float
