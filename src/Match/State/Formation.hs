@@ -24,7 +24,10 @@ defaultTactic _ = (0.5, 0.5)
 formationPosition :: MatchState -> Player -> FRange
 formationPosition m pl =
   let (plnum, plhome) = playerid pl
-      bp = absToRel' (pitchsize m) $ to2D $ ballposition $ ball m
+      bpn = absToRel' (pitchsize m) $ to2D $ ballposition $ ball m
+      bp = if plhome == homeattacksup m
+             then bpn
+             else flipSide bpn
       sourcemap = if plhome then homeformation m else awayformation m
       sfunc = M.findWithDefault defaultTactic plnum sourcemap
   in if plhome == homeattacksup m
@@ -50,9 +53,6 @@ kickoffPositionAbs :: MatchState -> Player -> FRange
 kickoffPositionAbs m pl =
   let rel = kickoffPosition m pl
   in relToAbs m rel
-
-checkFlip :: MatchState -> FRange -> FRange
-checkFlip m = if not (homeattacksup m) then flipSide else id
 
 shouldDoKickoff :: MatchState -> Player -> Bool
 shouldDoKickoff m pl = kickoffer m == playerid pl
