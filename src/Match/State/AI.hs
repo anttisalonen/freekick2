@@ -26,18 +26,25 @@ offBallAI m pl | plpos pl == Gen.Goalkeeper =
              then (pl, Goto (ballCoords m))
              else (pl, Goto (formationPositionAbs m pl))
 offBallAI m pl | plpos (nearestOppToBall m pl) == Gen.Goalkeeper && 
-                 dist2 (ballCoords m) (oppositeGoalAbs m pl) < 16 =
-    let (fx, fy) = formationPositionAbs m pl
-        fy' = if fy > snd (pitchsize m) / 2
-                then fy - 16
-                else fy + 16 -- leave the goalkeeper alone
-    in (pl, Goto (fx, fy'))
-offBallAI m pl | nearestOwnToBall m pl == pl && kicktimer pl <= 0 = 
+                 dist2 (ballCoords m) (oppositeGoalAbs m pl) < 24 =
+    -- leave the goalkeeper alone
+    (pl, Goto (awayFromNearbyGoal m 24 (formationPositionAbs m pl)))
+offBallAI m pl | nearestOwnToBall m pl == pl =
     (pl, Goto (ballCoords m))
 offBallAI m pl | supportingDefense m pl = 
     (pl, Goto (defenseSupporterCoords m pl))
+offBallAI m pl | plpos (nearestOwnToBall m pl) == Gen.Goalkeeper &&
+                 dist2 (ballCoords m) (plposition $ nearestOppToBall m pl) > 16 =
+    -- leave the goalkeeper alone
+    (pl, Goto (awayFromNearbyGoal m 12 (formationPositionAbs m pl)))
 offBallAI m pl | otherwise =
     (pl, Goto (formationPositionAbs m pl))
+
+awayFromNearbyGoal :: MatchState -> Float -> FRange -> FRange
+awayFromNearbyGoal m r (fx, fy) =
+  (fx, if fy > snd (pitchsize m) / 2
+         then fy - r
+         else fy + r)
 
 supportingOffense :: MatchState -> Player -> Bool
 supportingOffense m pl =
@@ -163,7 +170,7 @@ beforeRestartAI m r =
 
 restartLookout :: MatchState -> Restart -> Player -> PlAction
 restartLookout m _ pl = 
-  (pl, Goto (formationPositionAbs m pl))
+  (pl, Goto (awayFromNearbyGoal m 16 (formationPositionAbs m pl)))
 
 restart :: MatchState -> Restart -> Player -> PlAction
 restart m _ pl =
