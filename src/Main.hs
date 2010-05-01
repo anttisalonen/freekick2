@@ -307,8 +307,10 @@ browseTeams' toplevel = do
       teambuttons = map 
         (\(n, t) -> 
            Button (Left (ownerToColor t c))
-                  ((20 + 250 * (n `mod` 3), h - 100 - (n `div` 3) * 25), (240, 20)) 
-                  t f2 (browserButtonHandler toplevel)) 
+                  (if length labels > 10
+                     then ((20 + 250 * (n `mod` 3), h - 100 - (n `div` 3) * 25), (240, 20))
+                     else ((270, h - 150 - n * 35), (240, 30)))
+                  t (if length labels > 10 then f2 else f1) (browserButtonHandler toplevel)) 
         (zip [0..] labels)
       titlebutton = Button (Left SOrange) ((w `div` 2 - 100, h - 50), (200, 30)) title f1 (\_ -> return False)
       contlabel = "Play"
