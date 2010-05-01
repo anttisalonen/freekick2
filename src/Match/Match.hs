@@ -7,6 +7,7 @@ where
 import Control.Monad
 import Control.Monad.State as State
 import Data.List
+import Data.Maybe
 import qualified Data.IntMap as M
 import System.CPUTime
 import Data.Function
@@ -15,7 +16,7 @@ import System.Random
 import Control.Applicative
 
 import Graphics.Rendering.OpenGL as OpenGL
-import Graphics.UI.SDL as SDL
+import Graphics.UI.SDL as SDL hiding (flip)
 import Graphics.Rendering.FTGL as FTGL
 
 import SDLUtils
@@ -155,8 +156,14 @@ drawMatch = do
                                 let (plx, ply) = plposition pl
                                 writeOnPitch (matchfont2 s) (show pid) (plx, ply + 2)
     -- writeTexts come in last, as they reset the camera.
-    when (pausedBallplay s) $ writeText w h (matchfont1 s) text coords
-    writeText w h (matchfont2 s) (printf "%d min" (floor (snd (matchtime s)) `div` (60 :: Int))) (50, fromIntegral h - 50)
+    when (pausedBallplay s) $ writeText True w h (matchfont1 s) text coords
+    when (inPlay (ballplay s)) $ writeText False w h 
+                                     (matchfont2 s) 
+                                     (fromMaybe "" 
+                                         (liftM (\p -> show (playerNumber p) ++ " " ++ Match.Player.plname p)
+                                                (lasttouch s >>= flip findPlayer s))) 
+                                     (10, fromIntegral h - 20)
+    writeText False w h (matchfont2 s) (printf "%d min" (floor (snd (matchtime s)) `div` (60 :: Int))) (10, fromIntegral h - 50)
     glSwapBuffers
 
 uniformScale :: GLfloat -> IO ()
@@ -172,14 +179,15 @@ writeOnPitch f str (x, y) = do
   translate $ Vector3 (-(realToFrac textlen / 2)) 0 (0 :: GLfloat)
   renderFont f str FTGL.Front
 
-writeText :: Int -> Int -> Font -> String -> FRange -> IO ()
-writeText w h f str (x, y) = do
+writeText :: Bool -> Int -> Int -> Font -> String -> FRange -> IO ()
+writeText centered w h f str (x, y) = do
   loadIdentity
   setCamera ((0, 0), (w, h))
   color $ Color3 1 1 (1 :: GLfloat)
   translate $ Vector3 (realToFrac x) (realToFrac y) (2 :: GLfloat)
-  textlen <- getFontAdvance f str
-  translate $ Vector3 (-(realToFrac textlen / 2)) 0 (0 :: GLfloat)
+  when centered $ do
+    textlen <- getFontAdvance f str
+    translate $ Vector3 (-(realToFrac textlen / 2)) 0 (0 :: GLfloat)
   renderFont f str FTGL.Front
 
 playerOnHisSide :: MatchState -> Player -> Bool
