@@ -13,9 +13,26 @@ Synopsis:       A soccer game
 Description:    A soccer game.
 Build-type:     Simple
 
-data-files: share/bg.png, share/grass1.png,
+data-files: share/bg.png, 
+            share/grass1.png,
             share/DejaVuSans.ttf, share/DejaVuSansMono.ttf,
-            share/player1.png
+            share/player1-e.png, share/player1-n.png,
+            share/player1-w.png, share/player1-s.png,
+            share/player1shadow.png,
+            share/ball1.png,
+            share/ball1shadow.png,
+            share/goal1.png,
+            share/goal1shadow.png,
+            share/goal2.png,
+            share/goal2shadow.png,
+            share/tactics/352.tct,
+            share/tactics/424.tct,
+            share/tactics/433.tct,
+            share/tactics/442.tct,
+            share/tactics/451.tct,
+            share/tactics/532.tct,
+            share/tactics/541.tct
+
 
 extra-source-files: src/Match.hs, 
                     src/Swos.hs, 
