@@ -1,6 +1,8 @@
 module FVector
 where
 
+import Utils
+
 type FRange = (Float, Float)
 
 type FVector3 = (Float, Float, Float)
@@ -107,4 +109,7 @@ inside3cube ((tx1, ty1, tz1), (tx2, ty2, tz2)) ((x1, y1, z1), (x2, y2, z2)) =
   ((tx1 >= x1 && tx1 <= x2) || (tx2 >= x1 && tx2 <= x2) || (tx1 <= x1 && tx2 >= x2)) &&
   ((ty1 >= y1 && ty1 <= y2) || (ty2 >= y1 && ty2 <= y2) || (ty1 <= y1 && ty2 >= y2)) &&
   ((tz1 >= z1 && tz1 <= z2) || (tz2 >= z1 && tz2 <= z2) || (tz1 <= z1 && tz2 >= z2))
+
+clamp2 :: FRange -> FRange -> FRange -> FRange
+clamp2 (minx, miny) (maxx, maxy) (x, y) = (clamp minx maxx x, clamp miny maxy y)
 
