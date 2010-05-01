@@ -130,3 +130,19 @@ instance Binary Gen.GenTeam where
   put (GenTeam a b c d e f) = put a >> put b >> put c >> put d >> put e >> put f
   get = get >>= \a -> get >>= \b -> get >>= \c -> get >>= \d -> get >>= \e -> get >>= \f -> return (GenTeam a b c d e f)
 
+grey, white, black, orange, red, blue, brown, lightblue,
+  green, yellow :: Color
+grey = (128, 128, 128)
+white = (255, 255, 255)
+black = (0, 0, 0)
+orange = (255, 127, 0)
+red = (255, 0, 0)
+blue = (0, 0, 255)
+brown = (150, 75, 0)
+lightblue = (173, 216, 230)
+green = (0, 255, 0)
+yellow = (255, 255, 0)
+
+allColors = [grey, white, black, orange, red, blue, brown, lightblue, green, yellow]
+
+

@@ -30,19 +30,6 @@ swosSkillsToSkills p = PlayerSkills shoots passs speeds controls
 swosPlayerToGenPlayer :: Swos.SWOSPlayer -> GenPlayer
 swosPlayerToGenPlayer p = GenPlayer (Swos.plnumber p) (Swos.plname p) (swosPositionToPosition $ Swos.plposition p) (swosSkillsToSkills p)
 
-grey, white, black, orange, red, blue, brown, lightblue,
-  green, yellow :: Color
-grey = (128, 128, 128)
-white = (255, 255, 255)
-black = (0, 0, 0)
-orange = (255, 127, 0)
-red = (255, 0, 0)
-blue = (0, 0, 255)
-brown = (150, 75, 0)
-lightblue = (173, 216, 230)
-green = (0, 255, 0)
-yellow = (255, 255, 0)
-
 swosColorToColor :: Swos.SWOSColor -> Color
 swosColorToColor Swos.Grey = grey
 swosColorToColor Swos.White = white
