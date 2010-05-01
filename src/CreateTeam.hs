@@ -5,6 +5,7 @@ import System.Random
 import System.Environment
 import Control.Monad
 import Data.Maybe
+import Data.List
 
 import Data.Binary
 
@@ -44,7 +45,7 @@ create tname tnation tlevel s firsts surs outfile = do
          5 -> randomRIO (3, 4)
          _ -> randomRIO (2, 5)
   let f = 10 - d - m
-  tkitcol1 <- chooseIO allColors
+  tkitcol1 <- chooseIO (allColors \\ [grey, brown, orange])
   tkitcol2 <- chooseIO allColors
   tkitcol3 <- chooseIO allColors
   tkitcol4 <- chooseIO allColors
