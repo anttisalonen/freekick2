@@ -25,13 +25,8 @@ data-files: share/bg.png,
             share/goal1shadow.png,
             share/goal2.png,
             share/goal2shadow.png,
-            share/tactics/352.tct,
-            share/tactics/424.tct,
-            share/tactics/433.tct,
-            share/tactics/442.tct,
-            share/tactics/451.tct,
-            share/tactics/532.tct,
-            share/tactics/541.tct
+            share/tactics/*.tct,
+            share/teams/*.team
 
 
 extra-source-files: src/Match.hs, 
