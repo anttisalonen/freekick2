@@ -17,7 +17,7 @@ import Match.State.Formation
 
 offBallAI :: MatchState -> Player -> PlAction
 offBallAI m pl | plpos pl == Gen.Goalkeeper =
-    if nearestOwnToBall m pl == pl && 
+    if dist2 (ballCoords m) (ownGoalAbs m pl) < 16 &&
        inCatchDistance m pl && 
        not (canDribble m pl) &&
        opponentLastTouched m pl
