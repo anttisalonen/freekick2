@@ -49,16 +49,23 @@ data MatchTextureSet = MatchTextureSet {
   , goal2shadow       :: ImageInfo
   }
 
-playMatch :: MatchTextureSet -> Font -> Font -> (GenTeam, GenFormation, TeamOwner) -> (GenTeam, GenFormation, TeamOwner) -> IO ()
-playMatch texs f f2 ht at = do
+playMatch :: Either Int StdGen
+          -> MatchTextureSet 
+          -> Font 
+          -> Font
+          -> (GenTeam, GenFormation, TeamOwner) 
+          -> (GenTeam, GenFormation, TeamOwner) 
+          -> IO ()
+playMatch gen texs f f2 ht at = do
   let psize = (68, 105)
       contr = Nothing
   plist <- liftIO $ defineNewList Compile (drawPitch (pitchtexture texs) (16, 16) psize)
-  evalStateT runMatch (initMatchState plist psize (20, 40) texs ht at contr f f2)
+  evalStateT runMatch (initMatchState gen plist psize (20, 40) texs ht at contr f f2)
   (w, h) <- liftIO $ getWindowSize
   setCamera ((0, 0), (w, h))
 
-initMatchState :: DisplayList 
+initMatchState :: Either Int StdGen
+               -> DisplayList 
                -> FRange -> FRange 
                -> MatchTextureSet 
                -> (GenTeam, GenFormation, TeamOwner)
@@ -66,17 +73,19 @@ initMatchState :: DisplayList
                -> Maybe PlayerID 
                -> Font -> Font
                -> MatchState
-initMatchState plist psize cpos pltexs (ht, htac, ho) (at, atac, ao) c f1 f2 = 
+initMatchState gen plist psize cpos pltexs (ht, htac, ho) (at, atac, ao) c f1 f2 = 
   MatchState plist (goal1 pltexs) (goal2 pltexs) (goal1shadow pltexs) (goal2shadow pltexs)
              [] psize cpos 
              (Team hps (genFormationToFormation hps htac) 0 (genteamname ht) ho) 
              (Team aps (genFormationToFormation aps atac) 0 (genteamname at) ao) 
              c BeforeKickoff 
              (initialBall onPitchZ psize (ballimginfo pltexs) (ballshadowinfo pltexs))
-             [] Nothing f1 f2 (mkStdGen 21) (False, 0) False 0 0.020 False True
+             [] Nothing f1 f2 (getgen gen) (False, 0) False 0 0.020 False True
              defaultParams
   where hps = createPlayers True pltexs psize ht
         aps = createPlayers False pltexs psize at
+        getgen (Left n)  = mkStdGen n
+        getgen (Right g) = g
 
 onPitchZ :: Float
 onPitchZ = 1

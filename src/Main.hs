@@ -11,10 +11,13 @@ import Control.Exception
 import Prelude hiding (catch)
 import Data.Ord
 import Data.Function
+import System.Random
 import Control.Monad.State as State
 import Control.Applicative
 
 import Data.Binary
+import qualified Data.ByteString.Char8 as Str
+
 
 import Graphics.Rendering.OpenGL as OpenGL
 import Graphics.UI.SDL as SDL hiding (SrcAlpha)
@@ -26,6 +29,7 @@ import Tree
 import Match.Match
 import Drawing
 import Listings
+import Utils
 
 import Paths_freekick2
 
@@ -184,6 +188,19 @@ colorKit k c
   | c == socksMagic  = Gen.kitsockscolor k
   | otherwise        = c
 
+getRandomGen :: IO (Either Int StdGen)
+getRandomGen = handle (\e -> hPutStrLn stderr ("Using random generator: " ++ show (e :: IOException)) >> newStdGen >>= return . Right) $ do
+  fp <- getAppUserDataDirectory appname
+  createDirectoryIfMissing True fp
+  ex <- doesFileExist (fp </> "seed")
+  if ex
+    then do
+      contents <- liftM Str.unpack $ Str.readFile (fp </> "seed")
+      case safeRead contents of
+        Nothing -> newStdGen >>= return . Right
+        Just i  -> return (Left i)
+    else newStdGen >>= return . Right
+
 startMatch
      :: Font
      -> Font
@@ -218,7 +235,9 @@ startMatch f1 f2 ht ho at ao _ = do
   let ballshadowimg = ImageInfo ballshadowtex (0.4, 0.4)
       htac = fromMaybe (snd $ head allTactics) $ lookup (Gen.teamtactics ht) allTactics
       atac = fromMaybe (snd $ head allTactics) $ lookup (Gen.teamtactics at) allTactics
+  rgen <- liftIO $ getRandomGen
   liftIO $ playMatch 
+              rgen
               (MatchTextureSet ptex 
                                (PlayerTextureSet pltexhs pltexhn pltexhw pltexhe)
                                (PlayerTextureSet pltexas pltexan pltexaw pltexae)
