@@ -65,6 +65,7 @@ data MatchParams = MatchParams {
   , ballairviscosity   :: Float -- 0: none; 1/frametime(=50): complete
   , ballrollfriction   :: Float -- as in air viscosity
   , plcontrolmin       :: Float -- control coeff with control skill = 0
+  , plcontrolmax       :: Float -- control coeff with control skill = 1
   , maxkickveclen      :: Float -- maximum length of kick vector
   , stillpassveclen    :: Float -- max. length of kick vector to still count as pass
   , stillpassvecheight :: Float -- max. height of kick vector to still count as pass
@@ -97,16 +98,16 @@ defaultParams = MatchParams
   30 2000 1000 -- general
   1000 1000 1000 1000 1000  -- oop
   1.5 (-10) 0.5 1.2 -- ball
-  0.6 -- control
+  0.6 0.8 -- control
   50 -- kick
   20 2 -- pass
   0.5 0.5 -- kick variation
   1000 -- kick timer
-  20 4 1.5 0.25 -- ai pass
+  30 4 1.5 0.5 -- ai pass
   20 0.7 -- speed
-  1.2 0.8 1.0 -- max distances
-  0.8 0.5 1.9 -- max heights
-  30 -- max ball dribble speed
+  1.2 0.6 2.0 -- max distances
+  0.8 0.5 2.4 -- max heights
+  40 -- max ball dribble speed
   SDLK_ESCAPE SDLK_RCTRL SDLK_LEFT SDLK_RIGHT SDLK_UP SDLK_DOWN SDLK_p
 
 data MatchState = MatchState {

@@ -19,7 +19,7 @@ offBallAI :: MatchState -> Player -> PlAction
 offBallAI m pl | plpos pl == Gen.Goalkeeper =
     if nearestOwnToBall m pl == pl && 
        inCatchDistance m pl && 
-       not (inDribbleDistance m pl) &&
+       not (canDribble m pl) &&
        opponentLastTouched m pl
       then (pl, HoldBall)
       else if nearestOwnToBall m pl == pl && kicktimer pl <= 0
@@ -85,7 +85,7 @@ flipCompare a b
 
 passValue :: MatchState -> Player -> Player -> (Float, Player)
 passValue m passer receiver =
-  let sval  = shootPositionValue m (homeattacksup m == playerHome receiver) (plposition receiver)
+  let sval = 0.5 * shootPositionValue m (homeattacksup m == playerHome receiver) (plposition receiver)
       dist = dist2 (plposition passer) (plposition receiver)
   in (sval + ratePassDist dist, receiver)
 
@@ -97,7 +97,7 @@ ratePassDist d | d < 20    = 0.5 * (10 * d - 100)
 -- range: 0 .. 100
 shootPositionValue :: MatchState -> Bool -> FRange -> Float
 shootPositionValue _ attup pos =
-  max 0 (100 - (dist2 pos (oppositeGoalAbs' pos attup)))
+  max 0 (100 - (1.5 * (dist2 pos (oppositeGoalAbs' pos attup))))
 
 beforeKickoffAI :: MatchState -> [PlAction]
 beforeKickoffAI m = 
@@ -170,7 +170,9 @@ restart m _ pl =
 onBallAI :: MatchState -> Player -> PlAction
 onBallAI m pl | plpos pl == Gen.Goalkeeper =
   if distanceToBall m (nearestOppToBall m pl) < 10
-    then (pl, Idle)
+    then if dist2 (ballCoords m) (ownGoalAbs m pl) < 16
+           then (pl, Idle)
+           else generalOnBallAI m pl
     else generalOnBallAI m pl
 onBallAI m pl | otherwise = generalOnBallAI m pl
 

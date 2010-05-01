@@ -38,9 +38,9 @@ actP p a = do
     Nothing -> return ()
     Just pl  -> act pl a
 
-playerControlCoeff :: Float -> Player -> Float
-playerControlCoeff mn pl =
-  mn + (1 - mn) * (Gen.controlskill $ plskills pl)
+playerControlCoeff :: Float -> Float -> Player -> Float
+playerControlCoeff mn mx pl =
+  mn + (mx - mn) * (Gen.controlskill $ plskills pl)
 
 goto :: FRange -> Player -> Match ()
 goto (x, y) pl = do
@@ -59,14 +59,18 @@ goto (x, y) pl = do
                        yvel = sin ang * spd
                    in (-xvel, -yvel)
       dribbling = canDribble s pl && len2 addvec > 0.0000001
-      runvec = if dribbling then addvec `mul2` playerControlCoeff (plcontrolmin (params s)) pl else addvec
+      (px, py) = pitchsize s
+      runvec = if dribbling 
+                 then addvec `mul2` playerControlCoeff (plcontrolmin (params s)) (plcontrolmax (params s)) pl 
+                 else addvec
   when dribbling $ do
     sModBall $ modBallposition $ const $ to3D (plposition pl `add2` (addvec `mul2` 2)) 0
     sModBall $ modBallvelocity (const nullFVector3)
     sModPendingevents $ (BallKicked:)
     sModLasttouch $ const $ Just $ playerid pl
   doRot (Just (x, y)) pl
-  modify $ modPlayer c $ modPlposition $ add2 runvec
+  let npos = clamp2 (-4, -0.2) (px + 4, py + 0.2) (plposition pl `add2` runvec)
+  modify $ modPlayer c $ modPlposition $ const npos
 
 getRandomR :: (Random a) => (a, a) -> State StdGen a
 getRandomR v = State $ \s -> randomR v s
