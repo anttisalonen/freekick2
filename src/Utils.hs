@@ -15,3 +15,8 @@ wrap mn mx v =
            else v
     where diff = mx - mn
 
+safeRead :: (Read a) => String -> Maybe a
+safeRead s = case reads s of
+              [(n, _)] -> Just n
+              _        -> Nothing
+
