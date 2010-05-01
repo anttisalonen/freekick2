@@ -355,6 +355,22 @@ loadDataResource fp act = do
 loadDataTexture :: Maybe ChangeRGB -> FilePath -> Maybe Int -> Maybe Int -> IO TextureObject
 loadDataTexture cf fp mn mx = loadDataResource fp (loadTexture cf mn mx)
 
+getUserDataTeams :: IO [Gen.GenTeam]
+getUserDataTeams = handle (\e -> hPutStrLn stderr ("Exception when loading user data teams: " ++ show (e :: IOException)) >> return []) $ do
+  fp <- getAppUserDataDirectory appname
+  let dr = fp </> "teams"
+  createDirectoryIfMissing True dr
+  readDir dr
+
+appname = "freekick2"
+
+getUserDataTactics :: IO [Gen.SimpleFormation]
+getUserDataTactics = handle (\e -> hPutStrLn stderr ("Exception when loading user data tactics: " ++ show (e :: IOException)) >> return []) $ do
+  fp <- getAppUserDataDirectory appname
+  let dr = fp </> "tactics"
+  createDirectoryIfMissing True dr
+  readDir dr
+
 run :: IO ()
 run = do
   let width, height :: (Num a) => a
@@ -375,9 +391,13 @@ run = do
   f <- loadDataFont 24 48 "share/DejaVuSans.ttf"
   f2 <- loadDataFont 16 48 "share/DejaVuSans.ttf"
   teamdir <- getDataFileName "share/teams"
-  allteams <- structureTeams `fmap` readDir teamdir
+  shareteamlist <- readDir teamdir
+  plteamlist <- getUserDataTeams
+  let allteams = structureTeams (shareteamlist ++ plteamlist)
   tacticdir <- getDataFileName "share/tactics"
-  simplets <- readDir tacticdir
+  sharets <- readDir tacticdir
+  plts <- getUserDataTactics
+  let simplets = sharets ++ plts
   let ts = zip (map Gen.simpleorder simplets) (map Gen.simpleFormationToGenFormation simplets)
   let button1 = Button (Left SOrange) ((300, 200), (200, 30)) quitLabel f (\_ -> return True)
       button2 = Button (Left SBlue)   ((300, 400), (200, 30)) browseLabel f (browseTeams allteams)
@@ -389,11 +409,15 @@ run = do
 
 readDir :: (Binary a) => FilePath -> IO [a]
 readDir fp = do
-  fs <- getDirectoryContents fp
-  tss <- forM fs $ \f -> do
-    isfile <- doesFileExist (fp </> f)
-    if isfile
-      then decodeFile (fp </> f)
-      else return []
-  return $ concat tss
+  ex <- doesDirectoryExist fp
+  if not ex
+    then return []
+    else do
+      fs <- getDirectoryContents fp
+      tss <- forM fs $ \f -> do
+        isfile <- doesFileExist (fp </> f)
+        if isfile
+          then decodeFile (fp </> f)
+          else return []
+      return $ concat tss
 
