@@ -27,7 +27,11 @@ offBallAI m pl | plpos pl == Gen.Goalkeeper =
              else (pl, Goto (formationPositionAbs m pl))
 offBallAI m pl | plpos (nearestOppToBall m pl) == Gen.Goalkeeper && 
                  dist2 (ballCoords m) (oppositeGoalAbs m pl) < 16 =
-    (pl, Goto (formationPositionAbs m pl))
+    let (fx, fy) = formationPositionAbs m pl
+        fy' = if fy > snd (pitchsize m) / 2
+                then fy - 16
+                else fy + 16 -- leave the goalkeeper alone
+    in (pl, Goto (fx, fy'))
 offBallAI m pl | nearestOwnToBall m pl == pl && kicktimer pl <= 0 = 
     (pl, Goto (ballCoords m))
 offBallAI m pl | supportingDefense m pl = 
