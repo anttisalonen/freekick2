@@ -29,12 +29,33 @@ data-files: share/bg.png,
             share/teams/*.team
 
 
-extra-source-files: src/Match.hs, 
-                    src/Swos.hs, 
-                    src/SDLUtils.hs, 
-                    src/Drawing.hs, 
-                    src/DrawPitch.hs, 
-                    src/Tree.hs
+extra-source-files: src/Swos.hs,
+                    src/SwosTactics.hs,
+                    src/DeriveMod.hs,
+                    src/Drawing.hs,
+                    src/Main.hs,
+                    src/SwosToGen.hs,
+                    src/BinHelpers.hs,
+                    src/Listings.hs,
+                    src/Match/DrawPitch.hs,
+                    src/Match/Player.hs,
+                    src/Match/Ball.hs,
+                    src/Match/Match.hs,
+                    src/Match/State/Formation.hs,
+                    src/Match/State/AI.hs,
+                    src/Match/State/MatchBase.hs,
+                    src/Match/State/Actions.hs,
+                    src/Match/State/Controls.hs,
+                    src/Match/State/MatchState.hs,
+                    src/SWOSShell.hs,
+                    src/Utils.hs,
+                    src/CreateTeam.hs,
+                    src/Tree.hs,
+                    src/Gen.hs,
+                    src/SDLUtils.hs,
+                    src/FVector.hs,
+                    src/SwosConv.hs
+
 
 source-repository head
   type:      git
