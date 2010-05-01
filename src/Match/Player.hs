@@ -34,6 +34,7 @@ data PlayerTextureSet = PlayerTextureSet {
 
 data Player = Player {
     plposition   :: FRange
+  , plname       :: String
   , plimgsize    :: FRange
   , pltextureset :: PlayerTextureSet
   , plshadow     :: ImageInfo
@@ -99,7 +100,7 @@ genPlayerToPlayer :: Float
                   -> Gen.GenPlayer
                   -> Player
 genPlayerToPlayer inz home pltexset plshimg hsize (px, py) p = 
-  Player (px - 2, py / 2) hsize pltexset plshimg inz ((Gen.plnumber p), home) npos 0 psk 180
+  Player (px - 2, py / 2) (Gen.plname p) hsize pltexset plshimg inz ((Gen.plnumber p), home) npos 0 psk 180
     where npos = Gen.genplpos p
           psk = Gen.plskills p
 
