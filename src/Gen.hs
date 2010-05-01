@@ -4,6 +4,7 @@ where
 
 import Control.Monad.State(modify)
 import Data.Word
+import Data.Bits
 
 import Data.Binary
 
@@ -73,16 +74,15 @@ plPosToTactic :: [Int] -> Gen.Tactic
 plPosToTactic ps = \b -> plpoint (ballrectangle b) ps
 
 ballrectangle :: (Float, Float) -> Int
-ballrectangle (bx, by) = v
-  where v = y * 5 + x
-        x = clamp 0 4 $ floor $ (1 - bx) * 5
+ballrectangle (bx, by) = y * 5 + x
+  where x = clamp 0 4 $ floor $ (1 - bx) * 5
         y = clamp 0 6 $ floor $ by * 7
 
 plpoint :: Int -> [Int] -> FRange
 plpoint br ts = 
   let pn = ts !! (min 34 br)
-      xp = pn `mod` 15
-      yp = pn `div` 16
+      xp = pn `shiftR` 4
+      yp = pn .&. 0x0F
       x = 1 - fromIntegral xp * (1/15)
       y = fromIntegral yp * (1/16)
   in (x, y)
