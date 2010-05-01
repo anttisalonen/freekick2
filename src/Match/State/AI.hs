@@ -25,7 +25,8 @@ offBallAI m pl | plpos pl == Gen.Goalkeeper =
       else if nearestOwnToBall m pl == pl && kicktimer pl <= 0
              then (pl, Goto (ballCoords m))
              else (pl, Goto (formationPositionAbs m pl))
-offBallAI m pl | plpos (nearestOppToBall m pl) == Gen.Goalkeeper =
+offBallAI m pl | plpos (nearestOppToBall m pl) == Gen.Goalkeeper && 
+                 dist2 (ballCoords m) (oppositeGoalAbs m pl) < 16 =
     (pl, Goto (formationPositionAbs m pl))
 offBallAI m pl | nearestOwnToBall m pl == pl && kicktimer pl <= 0 = 
     (pl, Goto (ballCoords m))
