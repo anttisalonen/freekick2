@@ -15,7 +15,7 @@ usage = do
   n <- getProgName
   putStrLn $ "Usage: " ++ n ++ " <teamname> <teamnation> <teamlevel> <first-names-file> <surnames-file> <random seed> <out-file>"
   putStrLn "Team nation is an integer (see showTeamNation in Listings.hs.)"
-  putStrLn "Team level must be between 1 and 10."
+  putStrLn "Team level must be between 0 and 100."
 
 main = do
   args <- getArgs
@@ -50,7 +50,7 @@ create tname tnation tlevel s firsts surs outfile = do
   tkitcol4 <- chooseIO allColors
   let tkit = Kit 0 tkitcol1 tkitcol2 tkitcol3 tkitcol4
   tpls <- createPlayers tlevel firsts surs
-  encodeFile outfile [GenTeam tnation tname (d, m, f) 0 tkit tpls]
+  encodeFile outfile [GenTeam tnation tname (d, m, f) 5 tkit tpls]
 
 createPlayers :: Int -> [String] -> [String] -> IO [GenPlayer]
 createPlayers tlevel firsts surs = do
@@ -71,7 +71,7 @@ mkSkills tl = do
   var2 <- randomRIO (-0.4, 0.4)
   var3 <- randomRIO (-0.4, 0.4)
   var4 <- randomRIO (-0.4, 0.4)
-  let std = fromIntegral tl * 0.1
+  let std = fromIntegral tl * 0.01
   let s1 = clamp 0 1 $ std + var1
   let s2 = clamp 0 1 $ std + var2
   let s3 = clamp 0 1 $ std + var3
