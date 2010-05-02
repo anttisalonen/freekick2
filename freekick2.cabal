@@ -26,8 +26,8 @@ data-files: share/bg.png,
             share/goal2.png,
             share/goal2shadow.png,
             share/tactics/*.tct,
-            share/teams/*.team
-
+            share/teams/*.team,
+            README
 
 extra-source-files: src/Swos.hs,
                     src/SwosTactics.hs,

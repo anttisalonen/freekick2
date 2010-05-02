@@ -1,0 +1,75 @@
+Freekick2 Readme
+
+Introduction
+============
+
+Freekick2 is an open source 2D arcade style soccer game.
+
+Installation
+============
+
+Freekick2 can be installed from sources using cabal (see 
+http://www.haskell.org/cabal/).
+
+Step-by-step:
+
+1. Install cabal if you haven't already.
+
+To install system-wide, switch to the directory with freekick2 sources and do:
+
+2. $ cabal configure
+3. $ cabal build
+4. # cabal install
+
+To install user-wide, use 
+
+"cabal configure --user" 
+
+instead of 
+
+"cabal configure".
+
+Freekick2 depends on some libraries that can be found in Hackage, including 
+SDL, OpenGL, FTGL and others. See the freekick2.cabal file for a list.
+
+Freekick2 depends on some Haskell extensions, at least some of which, as far 
+as I know, have only been implemented in GHC. I haven't tried compiling
+freekick2 with a different compiler.
+
+When installing freekick2 from source, three executables are built:
+
+1. freekick2 - this is the actual game.
+2. swos2gen - a program for creating freekick2 tactics and teams from 
+Sensible Soccer tactics and teams - see below.
+3. createteam - a program for creating random teams.
+
+Alternatively, you can install freekick2 from Hackage, with a simple
+"cabal install freekick2".
+
+To run, simply type in freekick2.
+
+Teams
+=====
+
+Freekick2 includes some made-up teams. If you want to play with other teams,
+you can convert Sensible Soccer teams into freekick2 teams if you have the
+data files.
+
+Usage:
+
+swos2gen 0 <fromdir> <todir>
+
+swos2gen converts the files in the given directory to freekick2 files. All
+the files in the given directory must be in the given format. To install your
+new teams, copy the files to ~/.freekick2/teams or, in Windows, to
+C:\Documents And Settings\user\Application Data\freekick2\teams (insert your
+username).
+
+Troubleshooting
+===============
+
+If you have any problems, or other feedback, let me know.
+ajsalonen <at> gmail <dot> com.
+
+Antti Salonen
+
