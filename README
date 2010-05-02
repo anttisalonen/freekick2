@@ -46,7 +46,16 @@ Sensible Soccer tactics and teams - see below.
 Alternatively, you can install freekick2 from Hackage, with a simple
 "cabal install freekick2".
 
-To run, simply type in freekick2.
+Playing
+=======
+
+To run, simply type in freekick2. Click on the teams to choose them.
+Pink background means the team is controlled by the computer. Blue means it's
+controlled by a human. Currently only one team can be controlled by a human.
+You can control all players except the goalkeeper during the match, but restarts
+are handled by the computer. Use the arrow keys to run around with the player 
+you're controlling and the right control key to shoot the ball. The longer you
+hold down the right control key the stronger the shot will be.
 
 Teams
 =====
