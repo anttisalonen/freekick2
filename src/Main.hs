@@ -1,4 +1,4 @@
-module Main() where
+module Main(main) where
 
 import System.IO.Error hiding (catch)
 import Control.Monad
