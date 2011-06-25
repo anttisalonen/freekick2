@@ -73,7 +73,7 @@ goto (x, y) pl = do
   modify $ modPlayer c $ modPlposition $ const npos
 
 getRandomR :: (Random a) => (a, a) -> State StdGen a
-getRandomR v = State $ \s -> randomR v s
+getRandomR v = state $ \s -> randomR v s
 
 getKickVec :: FVector3 -> Player -> Match FVector3
 getKickVec v p = do
